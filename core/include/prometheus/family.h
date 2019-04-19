@@ -1,5 +1,10 @@
 #pragma once
 
+#include <algorithm>
+#include <cassert>
+#include <cstddef>
+#include <ctime>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -89,7 +94,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Family : public Collectable {
   /// metric.
   /// \throw std::runtime_exception on invalid metric or label names.
   Family(const std::string& name, const std::string& help,
-         const Labels& constant_labels);
+         const Labels& constant_labels, double seconds);
 
   /// \brief Add a new dimensional data.
   ///
@@ -140,6 +145,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Family : public Collectable {
   ///
   /// \return Zero or more samples for each dimensional data.
   std::vector<MetricFamily> Collect() const override;
+  std::vector<MetricFamily> Collect(std::time_t) const override;
 
  private:
   std::unordered_map<Labels, std::unique_ptr<T>, detail::LabelHasher> metrics_;
@@ -147,6 +153,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Family : public Collectable {
   const std::string name_;
   const std::string help_;
   const Labels constant_labels_;
+  double seconds_;
   mutable std::mutex mutex_;
 
   ClientMetric CollectMetric(const Labels& labels, T* metric) const;

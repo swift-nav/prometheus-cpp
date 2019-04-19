@@ -15,9 +15,10 @@ namespace prometheus {
 
 namespace {
 template <typename T>
-void CollectAll(std::vector<MetricFamily>& results, const T& families) {
+void CollectAll(std::vector<MetricFamily>& results, const T& families,
+                const std::time_t time) {
   for (auto&& collectable : families) {
-    auto metrics = collectable->Collect();
+    auto metrics = collectable->Collect(time);
     results.insert(results.end(), std::make_move_iterator(metrics.begin()),
                    std::make_move_iterator(metrics.end()));
   }
@@ -43,13 +44,18 @@ Registry::Registry(InsertBehavior insert_behavior)
 Registry::~Registry() = default;
 
 std::vector<MetricFamily> Registry::Collect() const {
+  const auto time = std::time(nullptr);
+  return Collect(time);
+}
+
+std::vector<MetricFamily> Registry::Collect(const std::time_t time) const {
   std::lock_guard<std::mutex> lock{mutex_};
   auto results = std::vector<MetricFamily>{};
 
-  CollectAll(results, counters_);
-  CollectAll(results, gauges_);
-  CollectAll(results, histograms_);
-  CollectAll(results, summaries_);
+  CollectAll(results, counters_, time);
+  CollectAll(results, gauges_, time);
+  CollectAll(results, histograms_, time);
+  CollectAll(results, summaries_, time);
 
   return results;
 }
@@ -96,7 +102,7 @@ bool Registry::NameExistsInOtherType<Summary>(const std::string& name) const {
 
 template <typename T>
 Family<T>& Registry::Add(const std::string& name, const std::string& help,
-                         const Labels& labels) {
+                         const Labels& labels, const double seconds) {
   std::lock_guard<std::mutex> lock{mutex_};
 
   if (NameExistsInOtherType<T>(name)) {
@@ -129,7 +135,7 @@ Family<T>& Registry::Add(const std::string& name, const std::string& help,
     throw std::invalid_argument("Family name already exists");
   }
 
-  auto family = detail::make_unique<Family<T>>(name, help, labels);
+  auto family = detail::make_unique<Family<T>>(name, help, labels, seconds);
   auto& ref = *family;
   families.push_back(std::move(family));
   return ref;
@@ -137,19 +143,19 @@ Family<T>& Registry::Add(const std::string& name, const std::string& help,
 
 template Family<Counter>& Registry::Add(const std::string& name,
                                         const std::string& help,
-                                        const Labels& labels);
+                                        const Labels& labels, double seconds);
 
 template Family<Gauge>& Registry::Add(const std::string& name,
                                       const std::string& help,
-                                      const Labels& labels);
+                                      const Labels& labels, double seconds);
 
 template Family<Summary>& Registry::Add(const std::string& name,
                                         const std::string& help,
-                                        const Labels& labels);
+                                        const Labels& labels, double seconds);
 
 template Family<Histogram>& Registry::Add(const std::string& name,
                                           const std::string& help,
-                                          const Labels& labels);
+                                          const Labels& labels, double seconds);
 
 template <typename T>
 bool Registry::Remove(const Family<T>& family) {

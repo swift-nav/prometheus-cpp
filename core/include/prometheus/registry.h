@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ctime>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -79,6 +80,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Registry : public Collectable {
   ///
   /// \return Zero or more metrics and their samples.
   std::vector<MetricFamily> Collect() const override;
+  std::vector<MetricFamily> Collect(std::time_t) const override;
 
   /// \brief Removes a metrics family from the registry.
   ///
@@ -105,7 +107,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Registry : public Collectable {
 
   template <typename T>
   Family<T>& Add(const std::string& name, const std::string& help,
-                 const Labels& labels);
+                 const Labels& labels, double seconds);
 
   const InsertBehavior insert_behavior_;
   std::vector<std::unique_ptr<Family<Counter>>> counters_;

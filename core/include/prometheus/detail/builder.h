@@ -21,12 +21,14 @@ class Builder {
   Builder& Labels(const ::prometheus::Labels& labels);
   Builder& Name(const std::string&);
   Builder& Help(const std::string&);
+  Builder& Seconds(double);
   Family<T>& Register(Registry&);
 
  private:
   ::prometheus::Labels labels_;
   std::string name_;
   std::string help_;
+  double seconds_;
 };
 
 }  // namespace detail

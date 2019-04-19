@@ -17,8 +17,11 @@ namespace prometheus {
 
 template <typename T>
 Family<T>::Family(const std::string& name, const std::string& help,
-                  const Labels& constant_labels)
-    : name_(name), help_(help), constant_labels_(constant_labels) {
+                  const Labels& constant_labels, const double seconds)
+    : name_(name),
+      help_(help),
+      constant_labels_(constant_labels),
+      seconds_(seconds) {
   if (!CheckMetricName(name_)) {
     throw std::invalid_argument("Invalid metric name");
   }
@@ -87,6 +90,12 @@ const Labels Family<T>::GetConstantLabels() const {
 
 template <typename T>
 std::vector<MetricFamily> Family<T>::Collect() const {
+  const auto time = std::time(nullptr);
+  return Collect(time);
+}
+
+template <typename T>
+std::vector<MetricFamily> Family<T>::Collect(const std::time_t time) const {
   std::lock_guard<std::mutex> lock{mutex_};
 
   if (metrics_.empty()) {
@@ -99,7 +108,10 @@ std::vector<MetricFamily> Family<T>::Collect() const {
   family.type = T::metric_type;
   family.metric.reserve(metrics_.size());
   for (const auto& m : metrics_) {
-    family.metric.push_back(std::move(CollectMetric(m.first, m.second.get())));
+    if (!m.second.get()->Expired(time, seconds_)) {
+      family.metric.push_back(
+          std::move(CollectMetric(m.first, m.second.get())));
+    }
   }
   return {family};
 }
