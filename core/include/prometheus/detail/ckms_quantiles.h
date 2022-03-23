@@ -5,27 +5,31 @@
 #include <functional>
 #include <vector>
 
+#include "prometheus/detail/core_export.h"
+
+// IWYU pragma: private, include "prometheus/summary.h"
+
 namespace prometheus {
 namespace detail {
 
-class CKMSQuantiles {
+class PROMETHEUS_CPP_CORE_EXPORT CKMSQuantiles {
  public:
-  struct Quantile {
-    const double quantile;
-    const double error;
-    const double u;
-    const double v;
-
+  struct PROMETHEUS_CPP_CORE_EXPORT Quantile {
     Quantile(double quantile, double error);
+
+    double quantile;
+    double error;
+    double u;
+    double v;
   };
 
  private:
   struct Item {
-    /*const*/ double value;
+    double value;
     int g;
-    /*const*/ int delta;
+    int delta;
 
-    explicit Item(double value, int lower_delta, int delta);
+    Item(double value, int lower_delta, int delta);
   };
 
  public:

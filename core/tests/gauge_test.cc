@@ -1,6 +1,6 @@
 #include "prometheus/gauge.h"
 
-#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 namespace prometheus {
 namespace {
@@ -30,11 +30,23 @@ TEST(GaugeTest, inc_multiple) {
   EXPECT_EQ(gauge.Value(), 7.0);
 }
 
+TEST(GaugeTest, inc_negative_value) {
+  Gauge gauge;
+  gauge.Increment(-1.0);
+  EXPECT_EQ(gauge.Value(), -1.0);
+}
+
 TEST(GaugeTest, dec) {
   Gauge gauge;
   gauge.Set(5.0);
   gauge.Decrement();
   EXPECT_EQ(gauge.Value(), 4.0);
+}
+
+TEST(GaugeTest, dec_negative_value) {
+  Gauge gauge;
+  gauge.Decrement(-1.0);
+  EXPECT_EQ(gauge.Value(), 1.0);
 }
 
 TEST(GaugeTest, dec_number) {

@@ -1,8 +1,9 @@
 #pragma once
 
-#include <map>
+#include <cstddef>
 #include <string>
 
-std::string GenerateRandomString(size_t length);
-std::map<std::string, std::string> GenerateRandomLabels(
-    std::size_t number_of_labels);
+#include "prometheus/labels.h"
+
+std::string GenerateRandomString(std::size_t length);
+prometheus::Labels GenerateRandomLabels(std::size_t number_of_labels);

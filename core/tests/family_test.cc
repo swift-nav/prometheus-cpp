@@ -1,13 +1,16 @@
 #include "prometheus/family.h"
 
-#include <memory>
-#include <limits>
-
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
+#include <limits>
+#include <memory>
 
 #include "prometheus/client_metric.h"
+#include "prometheus/counter.h"
 #include "prometheus/detail/future_std.h"
 #include "prometheus/histogram.h"
+#include "prometheus/labels.h"
 
 namespace prometheus {
 namespace {
@@ -28,8 +31,18 @@ TEST(FamilyTest, labels) {
               ::testing::ElementsAre(const_label, dynamic_label));
 }
 
+TEST(FamilyTest, reject_same_label_keys) {
+  auto labels = Labels{{"component", "test"}};
+
+  Family<Counter> family{"total_requests", "Counts all requests", labels,
+                         std::numeric_limits<double>::max()};
+  EXPECT_ANY_THROW(family.Add(labels));
+}
+
 TEST(FamilyTest, counter_value) {
-  Family<Counter> family{"total_requests", "Counts all requests", {},
+  Family<Counter> family{"total_requests",
+                         "Counts all requests",
+                         {},
                          std::numeric_limits<double>::max()};
   auto& counter = family.Add({});
   counter.Increment();
@@ -40,7 +53,9 @@ TEST(FamilyTest, counter_value) {
 }
 
 TEST(FamilyTest, remove) {
-  Family<Counter> family{"total_requests", "Counts all requests", {},
+  Family<Counter> family{"total_requests",
+                         "Counts all requests",
+                         {},
                          std::numeric_limits<double>::max()};
   auto& counter1 = family.Add({{"name", "counter1"}});
   family.Add({{"name", "counter2"}});
@@ -50,8 +65,18 @@ TEST(FamilyTest, remove) {
   EXPECT_EQ(collected[0].metric.size(), 1U);
 }
 
+TEST(FamilyTest, removeUnknownMetricMustNotCrash) {
+  Family<Counter> family{"total_requests",
+                         "Counts all requests",
+                         {},
+                         std::numeric_limits<double>::max()};
+  family.Remove(nullptr);
+}
+
 TEST(FamilyTest, Histogram) {
-  Family<Histogram> family{"request_latency", "Latency Histogram", {},
+  Family<Histogram> family{"request_latency",
+                           "Latency Histogram",
+                           {},
                            std::numeric_limits<double>::max()};
   auto& histogram1 = family.Add({{"name", "histogram1"}},
                                 Histogram::BucketBoundaries{0, 1, 2});
@@ -63,31 +88,60 @@ TEST(FamilyTest, Histogram) {
 }
 
 TEST(FamilyTest, add_twice) {
-  Family<Counter> family{"total_requests", "Counts all requests", {},
+  Family<Counter> family{"total_requests",
+                         "Counts all requests",
+                         {},
                          std::numeric_limits<double>::max()};
   auto& counter = family.Add({{"name", "counter1"}});
   auto& counter1 = family.Add({{"name", "counter1"}});
   ASSERT_EQ(&counter, &counter1);
 }
 
-TEST(FamilyTest, should_assert_on_invalid_metric_name) {
+TEST(FamilyTest, throw_on_invalid_metric_name) {
   auto create_family_with_invalid_name = []() {
     return detail::make_unique<Family<Counter>>(
-        "", "empty name", std::map<std::string, std::string>{},
-        std::numeric_limits<double>::max());
+        "", "empty name", Labels{}, std::numeric_limits<double>::max());
   };
-  EXPECT_DEBUG_DEATH(create_family_with_invalid_name(),
-                     ".*Assertion .*CheckMetricName.*");
+  EXPECT_ANY_THROW(create_family_with_invalid_name());
 }
 
-TEST(FamilyTest, should_assert_on_invalid_labels) {
-  Family<Counter> family{"total_requests", "Counts all requests", {},
+TEST(FamilyTest, throw_on_invalid_constant_label_name) {
+  auto create_family_with_invalid_labels = []() {
+    return detail::make_unique<Family<Counter>>(
+        "total_requests", "Counts all requests",
+        Labels{{"__inavlid", "counter1"}}, std::numeric_limits<double>::max());
+  };
+  EXPECT_ANY_THROW(create_family_with_invalid_labels());
+}
+
+TEST(FamilyTest, should_throw_on_invalid_labels) {
+  Family<Counter> family{"total_requests",
+                         "Counts all requests",
+                         {},
                          std::numeric_limits<double>::max()};
   auto add_metric_with_invalid_label_name = [&family]() {
     family.Add({{"__invalid", "counter1"}});
   };
-  EXPECT_DEBUG_DEATH(add_metric_with_invalid_label_name(),
-                     ".*Assertion .*CheckLabelName.*");
+  EXPECT_ANY_THROW(add_metric_with_invalid_label_name());
+}
+
+TEST(FamilyTest, should_not_collect_empty_metrics) {
+  Family<Counter> family{"total_requests",
+                         "Counts all requests",
+                         {},
+                         std::numeric_limits<double>::max()};
+  auto collected = family.Collect();
+  EXPECT_TRUE(collected.empty());
+}
+
+TEST(FamilyTest, query_family_if_metric_already_exists) {
+  Family<Counter> family{"total_rquests",
+                         "Counts all requests",
+                         {},
+                         std::numeric_limits<double>::max()};
+  family.Add({{"name", "counter1"}});
+  EXPECT_TRUE(family.Has({{"name", "counter1"}}));
+  EXPECT_FALSE(family.Has({{"name", "couner2"}}));
 }
 
 }  // namespace

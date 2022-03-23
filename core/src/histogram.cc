@@ -2,8 +2,12 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <iterator>
-#include <numeric>
+#include <limits>
+#include <memory>
+#include <stdexcept>
+#include <utility>
 
 namespace prometheus {
 
@@ -20,14 +24,35 @@ void Histogram::Observe(const double value) {
       std::find_if(
           std::begin(bucket_boundaries_), std::end(bucket_boundaries_),
           [value](const double boundary) { return boundary >= value; })));
+
+  std::lock_guard<std::mutex> lock(mutex_);
   sum_.Increment(value);
   bucket_counts_[bucket_index].Increment();
 }
 
+void Histogram::ObserveMultiple(const std::vector<double>& bucket_increments,
+                                const double sum_of_values) {
+  if (bucket_increments.size() != bucket_counts_.size()) {
+    throw std::length_error(
+        "The size of bucket_increments was not equal to"
+        "the number of buckets in the histogram.");
+  }
+
+  std::lock_guard<std::mutex> lock(mutex_);
+  sum_.Increment(sum_of_values);
+
+  for (std::size_t i{0}; i < bucket_counts_.size(); ++i) {
+    bucket_counts_[i].Increment(bucket_increments[i]);
+  }
+}
+
 ClientMetric Histogram::Collect() const {
+  std::lock_guard<std::mutex> lock(mutex_);
+
   auto metric = ClientMetric{};
 
   auto cumulative_count = 0ULL;
+  metric.histogram.bucket.reserve(bucket_counts_.size());
   for (std::size_t i{0}; i < bucket_counts_.size(); ++i) {
     cumulative_count += bucket_counts_[i].Value();
     auto bucket = ClientMetric::Bucket{};
@@ -46,7 +71,5 @@ ClientMetric Histogram::Collect() const {
 bool Histogram::Expired(std::time_t time, double seconds) const {
   return false;
 }
-
-detail::HistogramBuilder BuildHistogram() { return {}; }
 
 }  // namespace prometheus

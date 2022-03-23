@@ -19,6 +19,11 @@ add_library(civetweb OBJECT
   ${_IMPORT_PREFIX}/src/md5.inl
 )
 
+set_property(TARGET civetweb PROPERTY PUBLIC_HEADER
+  ${_IMPORT_PREFIX}/include/CivetServer.h
+  ${_IMPORT_PREFIX}/include/civetweb.h
+)
+
 target_compile_definitions(civetweb
   PRIVATE
     CIVETWEB_API=
@@ -26,8 +31,8 @@ target_compile_definitions(civetweb
     NDEBUG
     NO_CGI
     NO_CACHING
-    NO_SSL
     NO_FILES
+    SOCKET_TIMEOUT_QUANTUM=200
 )
 
 target_compile_options(civetweb
@@ -41,6 +46,18 @@ target_include_directories(civetweb
     ${CIVETWEB_INCLUDE_DIRS}
 )
 
+if(THIRDPARTY_CIVETWEB_WITH_SSL)
+  include(CMakeFindDependencyMacro)
+  find_dependency(OpenSSL)
+  if(OPENSSL_VERSION VERSION_GREATER_EQUAL 1.1)
+    target_compile_definitions(civetweb PRIVATE OPENSSL_API_1_1)
+  endif()
+  target_compile_definitions(civetweb PRIVATE NO_SSL_DL)
+  target_link_libraries(civetweb PUBLIC OpenSSL::SSL)
+else()
+  target_compile_definitions(civetweb PRIVATE NO_SSL)
+endif()
+
 if(BUILD_SHARED_LIBS)
   set_target_properties(civetweb PROPERTIES
     POSITION_INDEPENDENT_CODE ON
@@ -49,3 +66,8 @@ if(BUILD_SHARED_LIBS)
     VISIBILITY_INLINES_HIDDEN ON
   )
 endif()
+
+set_target_properties(civetweb PROPERTIES
+  C_INCLUDE_WHAT_YOU_USE ""
+  CXX_INCLUDE_WHAT_YOU_USE ""
+)

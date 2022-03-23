@@ -18,18 +18,22 @@ licenses(["notice"])  # MIT/X derivative license
 
 load("@com_github_jupp0r_prometheus_cpp//bazel:curl.bzl", "CURL_COPTS")
 
-package(features = ['no_copts_tokenization'])
+package(features = ["no_copts_tokenization"])
 
 config_setting(
     name = "windows",
-    values = {"cpu": "x64_windows"},
-    visibility = [ "//visibility:private" ],
+    constraint_values = [
+        "@bazel_tools//platforms:windows",
+    ],
+    visibility = ["//visibility:private"],
 )
 
 config_setting(
     name = "osx",
-    values = {"cpu": "darwin"},
-    visibility = [ "//visibility:private" ],
+    constraint_values = [
+        "@bazel_tools//platforms:osx",
+    ],
+    visibility = ["//visibility:private"],
 )
 
 cc_library(
@@ -41,21 +45,28 @@ cc_library(
         "include/curl/*.h",
         "lib/**/*.h",
     ]),
+    copts = CURL_COPTS + [
+        '-DOS="os"',
+    ],
     defines = ["CURL_STATICLIB"],
-    includes = ["include/", "lib/"],
-    linkopts =  select({
+    includes = [
+        "include/",
+        "lib/",
+    ],
+    linkopts = select({
         "//:windows": [
             "-DEFAULTLIB:ws2_32.lib",
             "-DEFAULTLIB:advapi32.lib",
             "-DEFAULTLIB:crypt32.lib",
             "-DEFAULTLIB:Normaliz.lib",
         ],
+        "//:osx": [
+            "-framework SystemConfiguration",
+            "-lpthread",
+        ],
         "//conditions:default": [
             "-lpthread",
         ],
     }),
-    copts = CURL_COPTS + [
-        '-DOS="os"',
-    ],
     visibility = ["//visibility:public"],
 )

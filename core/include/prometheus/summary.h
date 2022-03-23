@@ -7,8 +7,9 @@
 #include <vector>
 
 #include "prometheus/client_metric.h"
+#include "prometheus/detail/builder.h"  // IWYU pragma: export
 #include "prometheus/detail/ckms_quantiles.h"
-#include "prometheus/detail/summary_builder.h"
+#include "prometheus/detail/core_export.h"
 #include "prometheus/detail/time_window_quantiles.h"
 #include "prometheus/metric_type.h"
 
@@ -38,7 +39,7 @@ namespace prometheus {
 ///
 /// The class is thread-safe. No concurrent call to any API of this type causes
 /// a data race.
-class Summary {
+class PROMETHEUS_CPP_CORE_EXPORT Summary {
  public:
   using Quantiles = std::vector<detail::CKMSQuantiles::Quantile>;
 
@@ -81,12 +82,12 @@ class Summary {
   /// \brief Get the current value of the summary.
   ///
   /// Collect is called by the Registry when collecting metrics.
-  ClientMetric Collect();
+  ClientMetric Collect() const;
   bool Expired(std::time_t, double) const;
 
  private:
   const Quantiles quantiles_;
-  std::mutex mutex_;
+  mutable std::mutex mutex_;
   std::uint64_t count_;
   double sum_;
   detail::TimeWindowQuantiles quantile_values_;
@@ -114,11 +115,11 @@ class Summary {
 ///
 /// - Name(const std::string&) to set the metric name,
 /// - Help(const std::string&) to set an additional description.
-/// - Label(const std::map<std::string, std::string>&) to assign a set of
+/// - Labels(const Labels&) to assign a set of
 ///   key-value pairs (= labels) to the metric.
 ///
 /// To finish the configuration of the Summary metric register it with
 /// Register(Registry&).
-detail::SummaryBuilder BuildSummary();
+PROMETHEUS_CPP_CORE_EXPORT detail::Builder<Summary> BuildSummary();
 
 }  // namespace prometheus

@@ -2,23 +2,27 @@
 
 #include <algorithm>
 #include <cassert>
-#include <ctime>
 #include <cstddef>
+#include <ctime>
 #include <map>
 #include <memory>
 #include <mutex>
-#include <numeric>
 #include <string>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
-#include "prometheus/check_names.h"
 #include "prometheus/client_metric.h"
 #include "prometheus/collectable.h"
+#include "prometheus/detail/core_export.h"
 #include "prometheus/detail/future_std.h"
 #include "prometheus/detail/utils.h"
+#include "prometheus/labels.h"
 #include "prometheus/metric_family.h"
+
+// IWYU pragma: no_include "prometheus/counter.h"
+// IWYU pragma: no_include "prometheus/gauge.h"
+// IWYU pragma: no_include "prometheus/histogram.h"
+// IWYU pragma: no_include "prometheus/summary.h"
 
 namespace prometheus {
 
@@ -59,7 +63,7 @@ namespace prometheus {
 ///
 /// \tparam T One of the metric types Counter, Gauge, Histogram or Summary.
 template <typename T>
-class Family : public Collectable {
+class PROMETHEUS_CPP_CORE_EXPORT Family : public Collectable {
  public:
   /// \brief Create a new metric.
   ///
@@ -88,9 +92,9 @@ class Family : public Collectable {
   /// \param constant_labels Assign a set of key-value pairs (= labels) to the
   /// metric. All these labels are propagated to each time series within the
   /// metric.
+  /// \throw std::runtime_exception on invalid metric or label names.
   Family(const std::string& name, const std::string& help,
-         const std::map<std::string, std::string>& constant_labels,
-         double seconds);
+         const Labels& constant_labels, double seconds);
 
   /// \brief Add a new dimensional data.
   ///
@@ -102,14 +106,17 @@ class Family : public Collectable {
   ///     http_requests_total{job= "prometheus",method= "POST"}
   ///
   /// \param labels Assign a set of key-value pairs (= labels) to the
-  /// dimensional data. The function does nothing, if the same set of lables
+  /// dimensional data. The function does nothing, if the same set of labels
   /// already exists.
   /// \param args Arguments are passed to the constructor of metric type T. See
   /// Counter, Gauge, Histogram or Summary for required constructor arguments.
   /// \return Return the newly created dimensional data or - if a same set of
-  /// lables already exists - the already existing dimensional data.
+  /// labels already exists - the already existing dimensional data.
+  /// \throw std::runtime_exception on invalid label names.
   template <typename... Args>
-  T& Add(const std::map<std::string, std::string>& labels, Args&&... args);
+  T& Add(const Labels& labels, Args&&... args) {
+    return Add(labels, detail::make_unique<T>(args...));
+  }
 
   /// \brief Remove the given dimensional data.
   ///
@@ -117,122 +124,40 @@ class Family : public Collectable {
   /// if the given metric was not returned by Add().
   void Remove(T* metric);
 
+  /// \brief Returns true if the dimensional data with the given labels exist
+  ///
+  /// \param labels A set of key-value pairs (= labels) of the dimensional data.
+  bool Has(const Labels& labels) const;
+
+  /// \brief Returns the name for this family.
+  ///
+  /// \return The family name.
+  const std::string& GetName() const;
+
+  /// \brief Returns the constant labels for this family.
+  ///
+  /// \return All constant labels as key-value pairs.
+  const Labels GetConstantLabels() const;
+
   /// \brief Returns the current value of each dimensional data.
   ///
   /// Collect is called by the Registry when collecting metrics.
   ///
   /// \return Zero or more samples for each dimensional data.
-  std::vector<MetricFamily> Collect() override;
-  std::vector<MetricFamily> Collect(std::time_t) override;
+  std::vector<MetricFamily> Collect() const override;
+  std::vector<MetricFamily> Collect(std::time_t) const override;
 
  private:
-  std::unordered_map<std::size_t, std::unique_ptr<T>> metrics_;
-  std::unordered_map<std::size_t, std::map<std::string, std::string>> labels_;
-  std::unordered_map<T*, std::size_t> labels_reverse_lookup_;
+  std::unordered_map<Labels, std::unique_ptr<T>, detail::LabelHasher> metrics_;
 
   const std::string name_;
   const std::string help_;
-  const std::map<std::string, std::string> constant_labels_;
+  const Labels constant_labels_;
   double seconds_;
-  std::mutex mutex_;
+  mutable std::mutex mutex_;
 
-  ClientMetric CollectMetric(std::size_t hash, T* metric);
+  ClientMetric CollectMetric(const Labels& labels, T* metric) const;
+  T& Add(const Labels& labels, std::unique_ptr<T> object);
 };
-
-template <typename T>
-Family<T>::Family(const std::string& name, const std::string& help,
-                  const std::map<std::string, std::string>& constant_labels,
-                  double seconds)
-    : name_(name), help_(help), constant_labels_(constant_labels), seconds_(seconds) {
-  assert(CheckMetricName(name_));
-}
-
-template <typename T>
-template <typename... Args>
-T& Family<T>::Add(const std::map<std::string, std::string>& labels,
-                  Args&&... args) {
-#ifndef NDEBUG
-  for (auto& label_pair : labels) {
-    auto& label_name = label_pair.first;
-    assert(CheckLabelName(label_name));
-  }
-#endif
-
-  auto hash = detail::hash_labels(labels);
-  std::lock_guard<std::mutex> lock{mutex_};
-  auto metrics_iter = metrics_.find(hash);
-
-  if (metrics_iter != metrics_.end()) {
-#ifndef NDEBUG
-    auto labels_iter = labels_.find(hash);
-    assert(labels_iter != labels_.end());
-    const auto& old_labels = labels_iter->second;
-    assert(labels == old_labels);
-#endif
-    return *metrics_iter->second;
-  } else {
-    auto metric =
-        metrics_.insert(std::make_pair(hash, detail::make_unique<T>(args...)));
-    assert(metric.second);
-    labels_.insert({hash, labels});
-    labels_reverse_lookup_.insert({metric.first->second.get(), hash});
-    return *(metric.first->second);
-  }
-}
-
-template <typename T>
-void Family<T>::Remove(T* metric) {
-  std::lock_guard<std::mutex> lock{mutex_};
-  if (labels_reverse_lookup_.count(metric) == 0) {
-    return;
-  }
-
-  auto hash = labels_reverse_lookup_.at(metric);
-  metrics_.erase(hash);
-  labels_.erase(hash);
-  labels_reverse_lookup_.erase(metric);
-}
-
-template <typename T>
-std::vector<MetricFamily> Family<T>::Collect() {
-  const auto time = std::time(nullptr);
-  return Collect(time);
-}
-
-template <typename T>
-std::vector<MetricFamily> Family<T>::Collect(std::time_t time) {
-  std::lock_guard<std::mutex> lock{mutex_};
-  auto family = MetricFamily{};
-  family.name = name_;
-  family.help = help_;
-  family.type = T::metric_type;
-  for (const auto& m : metrics_) {
-    if (!m.second.get()->Expired(time, seconds_)) {
-      family.metric.push_back(std::move(CollectMetric(m.first, m.second.get())));
-    }
-  }
-  return {family};
-}
-
-
-template <typename T>
-ClientMetric Family<T>::CollectMetric(std::size_t hash, T* metric) {
-  auto collected = metric->Collect();
-  auto add_label =
-      [&collected](const std::pair<std::string, std::string>& label_pair) {
-        auto label = ClientMetric::Label{};
-        label.name = label_pair.first;
-        label.value = label_pair.second;
-        collected.label.push_back(std::move(label));
-      };
-  std::for_each(constant_labels_.cbegin(), constant_labels_.cend(), add_label);
-  const auto& metric_labels = labels_.at(hash);
-  for (auto const &label : metric_labels) {
-    if (constant_labels_.find(label.first) == constant_labels_.end()) {
-      add_label(label);
-    }
-  }
-  return collected;
-}
 
 }  // namespace prometheus

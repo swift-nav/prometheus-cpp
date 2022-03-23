@@ -1,8 +1,14 @@
-#include <chrono>
-#include <random>
-
 #include <benchmark/benchmark.h>
-#include <prometheus/registry.h>
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <random>
+#include <vector>
+
+#include "prometheus/family.h"
+#include "prometheus/registry.h"
+#include "prometheus/summary.h"
 
 using prometheus::Summary;
 

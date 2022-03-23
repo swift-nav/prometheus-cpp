@@ -1,24 +1,33 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <vector>
 
 #include "CivetServer.h"
+#include "prometheus/collectable.h"
+#include "prometheus/counter.h"
+#include "prometheus/family.h"
 #include "prometheus/registry.h"
+#include "prometheus/summary.h"
 
 namespace prometheus {
 namespace detail {
 class MetricsHandler : public CivetHandler {
  public:
-  MetricsHandler(const std::vector<std::weak_ptr<Collectable>>& collectables,
-                 Registry& registry);
+  explicit MetricsHandler(Registry& registry);
+
+  void RegisterCollectable(const std::weak_ptr<Collectable>& collectable);
+  void RemoveCollectable(const std::weak_ptr<Collectable>& collectable);
 
   bool handleGet(CivetServer* server, struct mg_connection* conn) override;
 
  private:
-  std::vector<MetricFamily> CollectMetrics() const;
+  static void CleanupStalePointers(
+      std::vector<std::weak_ptr<Collectable>>& collectables);
 
-  const std::vector<std::weak_ptr<Collectable>>& collectables_;
+  std::mutex collectables_mutex_;
+  std::vector<std::weak_ptr<Collectable>> collectables_;
   Family<Counter>& bytes_transferred_family_;
   Counter& bytes_transferred_;
   Family<Counter>& num_scrapes_family_;

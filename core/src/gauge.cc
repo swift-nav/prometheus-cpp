@@ -6,21 +6,11 @@ Gauge::Gauge(const double value) : value_{value} {}
 
 void Gauge::Increment() { Increment(1.0); }
 
-void Gauge::Increment(const double value) {
-  if (value < 0.0) {
-    return;
-  }
-  Change(value);
-}
+void Gauge::Increment(const double value) { Change(value); }
 
 void Gauge::Decrement() { Decrement(1.0); }
 
-void Gauge::Decrement(const double value) {
-  if (value < 0.0) {
-    return;
-  }
-  Change(-1.0 * value);
-}
+void Gauge::Decrement(const double value) { Change(-1.0 * value); }
 
 void Gauge::Set(const double value) {
   value_.store(value);
@@ -28,9 +18,11 @@ void Gauge::Set(const double value) {
 }
 
 void Gauge::Change(const double value) {
+  // C++ 20 will add std::atomic::fetch_add support for floating point types
   auto current = value_.load();
-  while (!value_.compare_exchange_weak(current, current + value))
-    ;
+  while (!value_.compare_exchange_weak(current, current + value)) {
+    // intentionally empty block
+  }
   time_.store(std::time(nullptr));
 }
 
@@ -50,7 +42,5 @@ ClientMetric Gauge::Collect() const {
 bool Gauge::Expired(std::time_t time, double seconds) const {
   return std::difftime(time, time_) > seconds;
 }
-
-detail::GaugeBuilder BuildGauge() { return {}; }
 
 }  // namespace prometheus

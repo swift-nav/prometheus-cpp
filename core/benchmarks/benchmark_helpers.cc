@@ -1,12 +1,13 @@
-#include <algorithm>
-#include <cstdlib>
-
 #include "benchmark_helpers.h"
 
-std::string GenerateRandomString(size_t length) {
+#include <algorithm>
+#include <cstdlib>
+#include <map>
+
+std::string GenerateRandomString(std::size_t length) {
   auto randchar = []() -> char {
     const char charset[] = "abcdefghijklmnopqrstuvwxyz";
-    const size_t max_index = (sizeof(charset) - 1);
+    const std::size_t max_index = (sizeof(charset) - 1);
     return charset[rand() % max_index];
   };
   std::string str(length, 0);
@@ -14,10 +15,9 @@ std::string GenerateRandomString(size_t length) {
   return str;
 }
 
-std::map<std::string, std::string> GenerateRandomLabels(
-    std::size_t number_of_pairs) {
+prometheus::Labels GenerateRandomLabels(std::size_t number_of_pairs) {
   const auto label_character_count = 10;
-  auto label_pairs = std::map<std::string, std::string>{};
+  auto label_pairs = prometheus::Labels{};
   for (std::size_t i = 0; i < number_of_pairs; i++) {
     label_pairs.insert({GenerateRandomString(label_character_count),
                         GenerateRandomString(label_character_count)});

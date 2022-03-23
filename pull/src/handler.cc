@@ -1,23 +1,28 @@
 #include "handler.h"
 
+#include <algorithm>
+#include <chrono>
 #include <cstring>
 #include <iterator>
+#include <string>
 
 #ifdef HAVE_ZLIB
+#include <zconf.h>
 #include <zlib.h>
 #endif
 
-#include "prometheus/serializer.h"
+#include "civetweb.h"
+#include "metrics_collector.h"
+#include "prometheus/counter.h"
+#include "prometheus/metric_family.h"
+#include "prometheus/summary.h"
 #include "prometheus/text_serializer.h"
 
 namespace prometheus {
 namespace detail {
 
-MetricsHandler::MetricsHandler(
-    const std::vector<std::weak_ptr<Collectable>>& collectables,
-    Registry& registry)
-    : collectables_(collectables),
-      bytes_transferred_family_(
+MetricsHandler::MetricsHandler(Registry& registry)
+    : bytes_transferred_family_(
           BuildCounter()
               .Name("exposer_transferred_bytes_total")
               .Help("Transferred bytes to metrics services")
@@ -89,7 +94,7 @@ static std::size_t WriteResponse(struct mg_connection* conn,
                                  const std::string& body) {
   mg_printf(conn,
             "HTTP/1.1 200 OK\r\n"
-            "Content-Type: text/plain\r\n");
+            "Content-Type: text/plain; charset=utf-8\r\n");
 
 #ifdef HAVE_ZLIB
   auto acceptsGzip = IsEncodingAccepted(conn, "gzip");
@@ -113,14 +118,40 @@ static std::size_t WriteResponse(struct mg_connection* conn,
   return body.size();
 }
 
+void MetricsHandler::RegisterCollectable(
+    const std::weak_ptr<Collectable>& collectable) {
+  std::lock_guard<std::mutex> lock{collectables_mutex_};
+  CleanupStalePointers(collectables_);
+  collectables_.push_back(collectable);
+}
+
+void MetricsHandler::RemoveCollectable(
+    const std::weak_ptr<Collectable>& collectable) {
+  std::lock_guard<std::mutex> lock{collectables_mutex_};
+
+  auto locked = collectable.lock();
+  auto same_pointer = [&locked](const std::weak_ptr<Collectable>& candidate) {
+    return locked == candidate.lock();
+  };
+
+  collectables_.erase(std::remove_if(std::begin(collectables_),
+                                     std::end(collectables_), same_pointer),
+                      std::end(collectables_));
+}
+
 bool MetricsHandler::handleGet(CivetServer*, struct mg_connection* conn) {
   auto start_time_of_request = std::chrono::steady_clock::now();
 
-  auto metrics = CollectMetrics();
+  std::vector<MetricFamily> metrics;
 
-  auto serializer = std::unique_ptr<Serializer>{new TextSerializer()};
+  {
+    std::lock_guard<std::mutex> lock{collectables_mutex_};
+    metrics = CollectMetrics(collectables_);
+  }
 
-  auto bodySize = WriteResponse(conn, serializer->Serialize(metrics));
+  const TextSerializer serializer;
+
+  auto bodySize = WriteResponse(conn, serializer.Serialize(metrics));
 
   auto stop_time_of_request = std::chrono::steady_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -131,22 +162,15 @@ bool MetricsHandler::handleGet(CivetServer*, struct mg_connection* conn) {
   num_scrapes_.Increment();
   return true;
 }
-std::vector<MetricFamily> MetricsHandler::CollectMetrics() const {
-  auto collected_metrics = std::vector<MetricFamily>{};
 
-  for (auto&& wcollectable : collectables_) {
-    auto collectable = wcollectable.lock();
-    if (!collectable) {
-      continue;
-    }
-
-    auto&& metrics = collectable->Collect();
-    collected_metrics.insert(collected_metrics.end(),
-                             std::make_move_iterator(metrics.begin()),
-                             std::make_move_iterator(metrics.end()));
-  }
-
-  return collected_metrics;
+void MetricsHandler::CleanupStalePointers(
+    std::vector<std::weak_ptr<Collectable>>& collectables) {
+  collectables.erase(
+      std::remove_if(std::begin(collectables), std::end(collectables),
+                     [](const std::weak_ptr<Collectable>& candidate) {
+                       return candidate.expired();
+                     }),
+      std::end(collectables));
 }
 }  // namespace detail
 }  // namespace prometheus

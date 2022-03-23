@@ -1,4 +1,9 @@
-# Prometheus Client Library for Modern C++ [![Build Status](https://travis-ci.org/jupp0r/prometheus-cpp.svg?branch=master)](https://travis-ci.org/jupp0r/prometheus-cpp)[![Coverage Status](https://coveralls.io/repos/github/jupp0r/prometheus-cpp/badge.svg?branch=master)](https://coveralls.io/github/jupp0r/prometheus-cpp?branch=master)[![Coverity Scan](https://scan.coverity.com/projects/10567/badge.svg)](https://scan.coverity.com/projects/jupp0r-prometheus-cpp)
+# Prometheus Client Library for Modern C++
+
+[![CI Status](https://github.com/jupp0r/prometheus-cpp/workflows/Continuous%20Integration/badge.svg)](https://github.com/jupp0r/prometheus-cpp/actions?workflow=Continuous+Integration)
+[![Travis Status](https://travis-ci.org/jupp0r/prometheus-cpp.svg?branch=master)](https://travis-ci.org/jupp0r/prometheus-cpp)
+[![Coverage Status](https://coveralls.io/repos/github/jupp0r/prometheus-cpp/badge.svg?branch=master)](https://coveralls.io/github/jupp0r/prometheus-cpp?branch=master)
+[![Coverity Scan](https://scan.coverity.com/projects/10567/badge.svg)](https://scan.coverity.com/projects/jupp0r-prometheus-cpp)
 
 This library aims to enable
 [Metrics-Driven Development](https://sookocheff.com/post/mdd/mdd/) for
@@ -10,53 +15,84 @@ other push/pull collections can be added as plugins.
 
 ## Usage
 
+See https://jupp0r.github.io/prometheus-cpp for more detailed interface documentation.
+
 ``` c++
+#include <prometheus/counter.h>
+#include <prometheus/exposer.h>
+#include <prometheus/registry.h>
+
+#include <array>
 #include <chrono>
-#include <map>
+#include <cstdlib>
 #include <memory>
 #include <string>
 #include <thread>
 
-#include <prometheus/exposer.h>
-#include <prometheus/registry.h>
-
-int main(int argc, char** argv) {
+int main() {
   using namespace prometheus;
 
   // create an http server running on port 8080
   Exposer exposer{"127.0.0.1:8080"};
 
-  // create a metrics registry with component=main labels applied to all its
-  // metrics
+  // create a metrics registry
+  // @note it's the users responsibility to keep the object alive
   auto registry = std::make_shared<Registry>();
 
   // add a new counter family to the registry (families combine values with the
   // same name, but distinct label dimensions)
-  auto& counter_family = BuildCounter()
-                             .Name("time_running_seconds_total")
-                             .Help("How many seconds is this server running?")
-                             .Labels({{"label", "value"}})
+  //
+  // @note please follow the metric-naming best-practices:
+  // https://prometheus.io/docs/practices/naming/
+  auto& packet_counter = BuildCounter()
+                             .Name("observed_packets_total")
+                             .Help("Number of observed packets")
                              .Register(*registry);
 
-  // add a counter to the metric family
-  auto& second_counter = counter_family.Add(
-      {{"another_label", "value"}, {"yet_another_label", "value"}});
+  // add and remember dimensional data, incrementing those is very cheap
+  auto& tcp_rx_counter =
+      packet_counter.Add({{"protocol", "tcp"}, {"direction", "rx"}});
+  auto& tcp_tx_counter =
+      packet_counter.Add({{"protocol", "tcp"}, {"direction", "tx"}});
+  auto& udp_rx_counter =
+      packet_counter.Add({{"protocol", "udp"}, {"direction", "rx"}});
+  auto& udp_tx_counter =
+      packet_counter.Add({{"protocol", "udp"}, {"direction", "tx"}});
 
-  // ask the exposer to scrape the registry on incoming scrapes
+  // add a counter whose dimensional data is not known at compile time
+  // nevertheless dimensional values should only occur in low cardinality:
+  // https://prometheus.io/docs/practices/naming/#labels
+  auto& http_requests_counter = BuildCounter()
+                                    .Name("http_requests_total")
+                                    .Help("Number of HTTP requests")
+                                    .Register(*registry);
+
+  // ask the exposer to scrape the registry on incoming HTTP requests
   exposer.RegisterCollectable(registry);
 
   for (;;) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    // increment the counter by one (second)
-    second_counter.Increment();
+    const auto random_value = std::rand();
+
+    if (random_value & 1) tcp_rx_counter.Increment();
+    if (random_value & 2) tcp_tx_counter.Increment();
+    if (random_value & 4) udp_rx_counter.Increment();
+    if (random_value & 8) udp_tx_counter.Increment();
+
+    const std::array<std::string, 4> methods = {"GET", "PUT", "POST", "HEAD"};
+    auto method = methods.at(random_value % methods.size());
+    // dynamically calling Family<T>.Add() works but is slow and should be
+    // avoided
+    http_requests_counter.Add({{"method", method}}).Increment();
   }
   return 0;
 }
+
 ```
 
 ## Requirements
 
-Using `prometheus-cpp` requires a C++11 compliant compiler. It has been successfully tested with GNU GCC 4.8 on Ubuntu Trusty and Visual Studio 2017 (but Visual Studio 2015 should work, too).
+Using `prometheus-cpp` requires a C++11 compliant compiler. It has been successfully tested with GNU GCC 7.4 on Ubuntu Bionic (18.04) and Visual Studio 2017 (but Visual Studio 2015 should work, too).
 
 ## Building
 
@@ -66,11 +102,15 @@ and [bazel](https://bazel.io). Both are tested in CI and should work
 on master and for all releases.
 
 In case these instructions don't work for you, looking at
-the [travis build script](.travis.yml) might help.
+the [GitHub Workflows](.github/workflows) might help.
 
 ### via CMake
 
-For CMake builds don't forget to fetch the submodules first. Then build as usual.
+For CMake builds don't forget to fetch the submodules first. Please note that
+[zlib](https://zlib.net/) and [libcurl](https://curl.se/) are not provided by
+the included submodules. In the example below their usage is disabled.
+
+Then build as usual.
 
 ``` shell
 # fetch third-party dependencies
@@ -81,17 +121,16 @@ mkdir _build
 cd _build
 
 # run cmake
-cmake .. -DBUILD_SHARED_LIBS=ON # or OFF for static libraries
+cmake .. -DBUILD_SHARED_LIBS=ON -DENABLE_PUSH=OFF -DENABLE_COMPRESSION=OFF
 
 # build
-make -j 4
+cmake --build . --parallel 4
 
 # run tests
 ctest -V
 
 # install the libraries and headers
-mkdir -p deploy
-make DESTDIR=`pwd`/deploy install
+cmake --install .
 ```
 
 ### via Bazel
@@ -101,13 +140,14 @@ this repo to your project as a dependency. Just add the following
 to your `WORKSPACE`:
 
 ```python
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive", "http_file")
 http_archive(
     name = "com_github_jupp0r_prometheus_cpp",
     strip_prefix = "prometheus-cpp-master",
     urls = ["https://github.com/jupp0r/prometheus-cpp/archive/master.zip"],
 )
 
-load("@com_github_jupp0r_prometheus_cpp//:repositories.bzl", "prometheus_cpp_repositories")
+load("@com_github_jupp0r_prometheus_cpp//bazel:repositories.bzl", "prometheus_cpp_repositories")
 
 prometheus_cpp_repositories()
 ```
@@ -119,21 +159,83 @@ demonstrated with the sample server included in this repository:
 cc_binary(
     name = "sample_server",
     srcs = ["sample_server.cc"],
-    deps = ["@com_github_jupp0r_prometheus_cpp//:prometheus_cpp"],
+    deps = ["@com_github_jupp0r_prometheus_cpp//pull"],
 )
 ```
 
 When you call `prometheus_cpp_repositories()` in your `WORKSPACE` file,
-you introduce the following dependencies, if they do not exist yet, to your project:
+you load the following dependencies, if they do not exist yet, into your project:
 
-* `load_civetweb()` to load `civetweb` rules for Civetweb
-* `load_com_google_googletest()` to load `com_google_googletest` rules for Google gtest
-* `load_com_google_googlebenchmark()` to load `com_github_google_benchmark` rules for Googlebenchmark
-* `load_com_github_curl()` to load `com_github_curl` rules for curl
-* `load_net_zlib_zlib()` to load `net_zlib_zlib` rules for zlib
+* `civetweb` for [Civetweb](https://github.com/civetweb/civetweb)
+* `com_google_googletest` for [Google Test](https://github.com/google/googletest)
+* `com_github_google_benchmark` for [Google Benchmark](https://github.com/google/benchmark)
+* `com_github_curl` for [curl](https://curl.haxx.se/)
+* `net_zlib_zlib` for [zlib](http://www.zlib.net/)
 
-The list of dependencies is also available from file `repositories.bzl`.
+The list of dependencies is also available from file [repositories.bzl](bazel/repositories.bzl).
 
+## Packaging
+
+By configuring CPack you can generate an installer like a
+Debian package (.deb) or RPM (.rpm) for the static or dynamic
+libraries so they can be easily installed on
+other systems.
+
+Please refer to the [CPack](https://cmake.org/cmake/help/latest/module/CPack.html)
+documentation for all available generators and their
+configuration options.
+
+To generate a Debian package you could follow these steps:
+
+``` shell
+# fetch third-party dependencies
+git submodule update --init
+
+# run cmake
+cmake -B_build -DCPACK_GENERATOR=DEB -DBUILD_SHARED_LIBS=ON # or OFF for static libraries
+
+# build and package
+cmake --build _build --target package --parallel $(nproc)
+```
+
+This will place an appropriately named .deb in the
+`_build` folder. To build a RPM package set the `CPACK_GENERATOR`
+variable to `RPM`. 
+
+## Consuming the installed project
+
+### CMake
+
+Consuming prometheus-cpp via CMake is the preferred way because all the dependencies
+between the three prometheus-cpp libraries are handled correctly.
+
+The `cmake/project-import` directory contains an
+example project and minimal [CMakeLists.txt](cmake/project-import-cmake/CMakeLists.txt).
+
+### vcpkg
+
+The [vcpkg](https://github.com/microsoft/vcpkg) package manager contains a
+prometheus-cpp port which has been tested on Linux, macOS, and Windows.
+
+### Conan
+
+[Conan](https://conan.io/) package manager contains prometheus-cpp package as well
+in [ConanCenter](https://conan.io/center/prometheus-cpp) repository
+
+### Plain Makefiles
+
+When manually linking prometheus-cpp the library order matters. The needed
+libraries depend on the individual use case but the following should work for the pull metrics approach:
+
+```
+-lprometheus-cpp-pull -lprometheus-cpp-core -lz
+```
+
+For the push-workflow please try:
+
+```
+-lprometheus-cpp-push -lprometheus-cpp-core -lcurl -lz
+```
 
 ## Contributing
 
@@ -259,9 +361,9 @@ BM_Summary_Collect_Common/262144                128723 ns     126987 ns       55
 ```
 
 ## Project Status
-Beta, getting ready for 1.0. The library is pretty stable and used in
-production. There are some small breaking API changes that might
-happen before 1.0 Parts of the library are instrumented by itself
+Stable and used in production.
+
+Parts of the library are instrumented by itself
 (bytes scraped, number of scrapes, scrape request latencies).  There
 is a working [example](pull/tests/integration/sample_server.cc) that's
 scraped by telegraf as part of integration tests.

@@ -1,9 +1,12 @@
 #include "prometheus/summary.h"
 
-#include <cmath>
-#include <thread>
+#include <gtest/gtest.h>
 
-#include <gmock/gmock.h>
+#include <chrono>
+#include <cmath>
+#include <limits>
+#include <memory>
+#include <thread>
 
 namespace prometheus {
 namespace {
@@ -72,7 +75,7 @@ TEST(SummaryTest, max_age) {
                   2};
   summary.Observe(8.0);
 
-  static const auto test_value = [&summary](double ref) {
+  const auto test_value = [&summary](double ref) {
     auto metric = summary.Collect();
     auto s = metric.summary;
     ASSERT_EQ(s.quantile.size(), 1U);
@@ -88,6 +91,14 @@ TEST(SummaryTest, max_age) {
   test_value(8.0);
   std::this_thread::sleep_for(std::chrono::milliseconds(600));
   test_value(std::numeric_limits<double>::quiet_NaN());
+}
+
+TEST(SummaryTest, construction_with_dynamic_quantile_vector) {
+  auto quantiles = Summary::Quantiles{{0.99, 0.001}};
+  quantiles.push_back({0.5, 0.05});
+
+  Summary summary{quantiles, std::chrono::seconds(1), 2};
+  summary.Observe(8.0);
 }
 
 }  // namespace

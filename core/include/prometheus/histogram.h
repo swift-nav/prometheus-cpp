@@ -1,11 +1,14 @@
 #pragma once
 
 #include <ctime>
+#include <mutex>
 #include <vector>
 
 #include "prometheus/client_metric.h"
 #include "prometheus/counter.h"
-#include "prometheus/detail/histogram_builder.h"
+#include "prometheus/detail/builder.h"  // IWYU pragma: export
+#include "prometheus/detail/core_export.h"
+#include "prometheus/gauge.h"
 #include "prometheus/metric_type.h"
 
 namespace prometheus {
@@ -19,20 +22,20 @@ namespace prometheus {
 /// values, allowing to calculate the average of the observed values.
 ///
 /// At its core a histogram has a counter per bucket. The sum of observations
-/// also behaves like a counter.
+/// also behaves like a counter as long as there are no negative observations.
 ///
 /// See https://prometheus.io/docs/practices/histograms/ for detailed
 /// explanations of histogram usage and differences to summaries.
 ///
 /// The class is thread-safe. No concurrent call to any API of this type causes
 /// a data race.
-class Histogram {
+class PROMETHEUS_CPP_CORE_EXPORT Histogram {
  public:
   using BucketBoundaries = std::vector<double>;
 
   static const MetricType metric_type{MetricType::Histogram};
 
-  /// \brief Create a histogram with manually choosen buckets.
+  /// \brief Create a histogram with manually chosen buckets.
   ///
   /// The BucketBoundaries are a list of monotonically increasing values
   /// representing the bucket boundaries. Each consecutive pair of values is
@@ -52,6 +55,14 @@ class Histogram {
   /// sum of all observations is incremented.
   void Observe(double value);
 
+  /// \brief Observe multiple data points.
+  ///
+  /// Increments counters given a count for each bucket. (i.e. the caller of
+  /// this function must have already sorted the values into buckets).
+  /// Also increments the total sum of all observations by the given value.
+  void ObserveMultiple(const std::vector<double>& bucket_increments,
+                       const double sum_of_values);
+
   /// \brief Get the current value of the counter.
   ///
   /// Collect is called by the Registry when collecting metrics.
@@ -60,8 +71,9 @@ class Histogram {
 
  private:
   const BucketBoundaries bucket_boundaries_;
+  mutable std::mutex mutex_;
   std::vector<Counter> bucket_counts_;
-  Counter sum_;
+  Gauge sum_;
 };
 
 /// \brief Return a builder to configure and register a Histogram metric.
@@ -86,11 +98,11 @@ class Histogram {
 ///
 /// - Name(const std::string&) to set the metric name,
 /// - Help(const std::string&) to set an additional description.
-/// - Label(const std::map<std::string, std::string>&) to assign a set of
+/// - Labels(const Labels&) to assign a set of
 ///   key-value pairs (= labels) to the metric.
 ///
 /// To finish the configuration of the Histogram metric register it with
 /// Register(Registry&).
-detail::HistogramBuilder BuildHistogram();
+PROMETHEUS_CPP_CORE_EXPORT detail::Builder<Histogram> BuildHistogram();
 
 }  // namespace prometheus

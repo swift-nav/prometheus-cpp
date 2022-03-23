@@ -1,5 +1,7 @@
 #include "prometheus/summary.h"
 
+#include <utility>
+
 namespace prometheus {
 
 Summary::Summary(const Quantiles& quantiles,
@@ -17,11 +19,12 @@ void Summary::Observe(const double value) {
   quantile_values_.insert(value);
 }
 
-ClientMetric Summary::Collect() {
+ClientMetric Summary::Collect() const {
   auto metric = ClientMetric{};
 
   std::lock_guard<std::mutex> lock(mutex_);
 
+  metric.summary.quantile.reserve(quantiles_.size());
   for (const auto& quantile : quantiles_) {
     auto metricQuantile = ClientMetric::Quantile{};
     metricQuantile.quantile = quantile.quantile;
@@ -34,10 +37,6 @@ ClientMetric Summary::Collect() {
   return metric;
 }
 
-bool Summary::Expired(std::time_t time, double seconds) const {
-  return false;
-}
-
-detail::SummaryBuilder BuildSummary() { return {}; }
+bool Summary::Expired(std::time_t time, double seconds) const { return false; }
 
 }  // namespace prometheus

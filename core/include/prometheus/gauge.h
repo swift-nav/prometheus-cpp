@@ -4,7 +4,8 @@
 #include <ctime>
 
 #include "prometheus/client_metric.h"
-#include "prometheus/detail/gauge_builder.h"
+#include "prometheus/detail/builder.h"  // IWYU pragma: export
+#include "prometheus/detail/core_export.h"
 #include "prometheus/metric_type.h"
 
 namespace prometheus {
@@ -21,7 +22,7 @@ namespace prometheus {
 ///
 /// The class is thread-safe. No concurrent call to any API of this type causes
 /// a data race.
-class Gauge {
+class PROMETHEUS_CPP_CORE_EXPORT Gauge {
  public:
   static const MetricType metric_type{MetricType::Gauge};
 
@@ -86,11 +87,11 @@ class Gauge {
 ///
 /// - Name(const std::string&) to set the metric name,
 /// - Help(const std::string&) to set an additional description.
-/// - Label(const std::map<std::string, std::string>&) to assign a set of
+/// - Labels(const Labels&) to assign a set of
 ///   key-value pairs (= labels) to the metric.
 ///
 /// To finish the configuration of the Gauge metric register it with
 /// Register(Registry&).
-detail::GaugeBuilder BuildGauge();
+PROMETHEUS_CPP_CORE_EXPORT detail::Builder<Gauge> BuildGauge();
 
 }  // namespace prometheus
