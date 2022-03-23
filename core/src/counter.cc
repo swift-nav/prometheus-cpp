@@ -19,9 +19,10 @@ ClientMetric Counter::Collect() const {
   return metric;
 }
 
-bool Counter::Expired(const std::time_t time, const double seconds) const {
+bool Counter::Expired(const std::chrono::steady_clock::time_point& time,
+                      const std::chrono::seconds& ttl) {
   (void)time;
-  (void)seconds;
+  (void)ttl;
   return false;
 }
 

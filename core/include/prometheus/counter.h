@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ctime>
+#include <chrono>
 
 #include "prometheus/client_metric.h"
 #include "prometheus/detail/builder.h"  // IWYU pragma: export
@@ -47,7 +47,14 @@ class PROMETHEUS_CPP_CORE_EXPORT Counter {
   ///
   /// Collect is called by the Registry when collecting metrics.
   ClientMetric Collect() const;
-  bool Expired(std::time_t, double) const;
+
+  /// \brief Check if the counter has expired.
+  ///
+  /// Expires is called by the Registry when collecting metrics.
+  ///
+  /// A counter never expires.
+  static bool Expired(const std::chrono::steady_clock::time_point& time,
+                      const std::chrono::seconds& ttl);
 
  private:
   Gauge gauge_{0.0};

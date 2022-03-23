@@ -101,5 +101,13 @@ TEST(SummaryTest, construction_with_dynamic_quantile_vector) {
   summary.Observe(8.0);
 }
 
+TEST(SummaryTest, not_expired) {
+  Summary summary{Summary::Quantiles{{0.5, 0.05}}};
+  summary.Observe(0);
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  EXPECT_FALSE(summary.Expired(std::chrono::steady_clock::now(),
+                               std::chrono::seconds(1)));
+}
+
 }  // namespace
 }  // namespace prometheus

@@ -42,8 +42,7 @@ TEST(RegistryTest, build_histogram_family) {
 }
 
 TEST(RegistryTest, unable_to_remove_family) {
-  Family<Counter> family{
-      "name", "help", {}, std::numeric_limits<double>::max()};
+  Family<Counter> family{"name", "help", {}};
   Registry registry{};
   EXPECT_FALSE(registry.Remove(family));
 }

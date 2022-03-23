@@ -1,7 +1,7 @@
 #pragma once
 
 #include <atomic>
-#include <ctime>
+#include <chrono>
 
 #include "prometheus/client_metric.h"
 #include "prometheus/detail/builder.h"  // IWYU pragma: export
@@ -57,12 +57,26 @@ class PROMETHEUS_CPP_CORE_EXPORT Gauge {
   ///
   /// Collect is called by the Registry when collecting metrics.
   ClientMetric Collect() const;
-  bool Expired(std::time_t, double) const;
+
+  /// \brief Check if the gauge has expired.
+  ///
+  /// Expires is called by the Registry when collecting metrics.
+  ///
+  /// A gauge has expired if it has been more than `ttl` seconds
+  /// since `time`.
+  ///
+  /// \param time The current time.
+  /// \param time Time to live in seconds.
+  ///
+  /// \return Has the gauge expired.
+  bool Expired(const std::chrono::steady_clock::time_point& time,
+               const std::chrono::seconds& ttl) const;
 
  private:
   void Change(double);
   std::atomic<double> value_{0.0};
-  std::atomic<std::time_t> time_{std::time(nullptr)};
+  std::atomic<std::chrono::steady_clock::time_point> time_{
+      std::chrono::steady_clock::now()};
 };
 
 /// \brief Return a builder to configure and register a Gauge metric.
@@ -77,6 +91,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Gauge {
 ///                          .Name("some_name")
 ///                          .Help("Additional description.")
 ///                          .Labels({{"key", "value"}})
+///                          .TTL(360)
 ///                          .Register(*registry);
 ///
 /// ...
@@ -89,6 +104,8 @@ class PROMETHEUS_CPP_CORE_EXPORT Gauge {
 /// - Help(const std::string&) to set an additional description.
 /// - Labels(const Labels&) to assign a set of
 ///   key-value pairs (= labels) to the metric.
+/// - TTL(const std::chrono::seconds&)` to set the time to live. Gauges that
+///   are not updated within `ttl` seconds will not be collected.
 ///
 /// To finish the configuration of the Gauge metric register it with
 /// Register(Registry&).

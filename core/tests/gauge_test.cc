@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
+#include <thread>
+
 namespace prometheus {
 namespace {
 
@@ -74,6 +77,36 @@ TEST(GaugeTest, set_to_current_time) {
   Gauge gauge;
   gauge.SetToCurrentTime();
   EXPECT_GT(gauge.Value(), 0.0);
+}
+
+TEST(GaugeTest, set_expired) {
+  Gauge gauge;
+  gauge.Set(1.0);
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  EXPECT_TRUE(
+      gauge.Expired(std::chrono::steady_clock::now(), std::chrono::seconds(1)));
+}
+
+TEST(GaugeTest, set_not_expired) {
+  Gauge gauge;
+  gauge.Set(1.0);
+  EXPECT_FALSE(
+      gauge.Expired(std::chrono::steady_clock::now(), std::chrono::seconds(1)));
+}
+
+TEST(GaugeTest, increment_expired) {
+  Gauge gauge;
+  gauge.Increment();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  EXPECT_TRUE(
+      gauge.Expired(std::chrono::steady_clock::now(), std::chrono::seconds(1)));
+}
+
+TEST(GaugeTest, increment_not_expired) {
+  Gauge gauge;
+  gauge.Increment();
+  EXPECT_FALSE(
+      gauge.Expired(std::chrono::steady_clock::now(), std::chrono::seconds(1)));
 }
 
 }  // namespace
