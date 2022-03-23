@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ctime>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -11,12 +12,16 @@
 #include "prometheus/labels.h"
 #include "prometheus/metric_family.h"
 
+// IWYU pragma: no_include "prometheus/counter.h"
+// IWYU pragma: no_include "prometheus/gauge.h"
+// IWYU pragma: no_include "prometheus/histogram.h"
+// IWYU pragma: no_include "prometheus/summary.h"
 namespace prometheus {
 
-class Counter;
-class Gauge;
-class Histogram;
-class Summary;
+class Counter;    // IWYU pragma: keep
+class Gauge;      // IWYU pragma: keep
+class Histogram;  // IWYU pragma: keep
+class Summary;    // IWYU pragma: keep
 
 namespace detail {
 
