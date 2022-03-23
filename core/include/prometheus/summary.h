@@ -2,7 +2,6 @@
 
 #include <chrono>
 #include <cstdint>
-#include <ctime>
 #include <mutex>
 #include <vector>
 
@@ -83,7 +82,14 @@ class PROMETHEUS_CPP_CORE_EXPORT Summary {
   ///
   /// Collect is called by the Registry when collecting metrics.
   ClientMetric Collect() const;
-  bool Expired(std::time_t, double) const;
+
+  /// \brief Check if the summary has expired.
+  ///
+  /// Expires is called by the Registry when collecting metrics.
+  ///
+  /// A summary never expires.
+  static bool Expired(const std::chrono::steady_clock::time_point& time,
+                      const std::chrono::seconds& ttl);
 
  private:
   const Quantiles quantiles_;

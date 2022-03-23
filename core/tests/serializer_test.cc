@@ -19,8 +19,7 @@ namespace {
 class SerializerTest : public testing::Test {
  public:
   void SetUp() override {
-    Family<Counter> family{
-        "requests_total", "", {}, std::numeric_limits<double>::max()};
+    Family<Counter> family{"requests_total", "", {}};
     auto& counter = family.Add({});
     counter.Increment();
 

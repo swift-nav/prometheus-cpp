@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <string>
 
 #include "prometheus/labels.h"
@@ -21,14 +22,14 @@ class Builder {
   Builder& Labels(const ::prometheus::Labels& labels);
   Builder& Name(const std::string&);
   Builder& Help(const std::string&);
-  Builder& Seconds(double);
+  Builder& TTL(const std::chrono::seconds& ttl);
   Family<T>& Register(Registry&);
 
  private:
   ::prometheus::Labels labels_;
   std::string name_;
   std::string help_;
-  double seconds_;
+  std::chrono::seconds ttl_{std::chrono::seconds::max()};
 };
 
 }  // namespace detail

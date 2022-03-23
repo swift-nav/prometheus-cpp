@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ctime>
+#include <chrono>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -80,7 +80,18 @@ class PROMETHEUS_CPP_CORE_EXPORT Registry : public Collectable {
   ///
   /// \return Zero or more metrics and their samples.
   std::vector<MetricFamily> Collect() const override;
-  std::vector<MetricFamily> Collect(std::time_t) const override;
+
+  /// \brief Returns a list of metrics and their samples.
+  ///
+  /// Every time the Registry is scraped it calls each of the metrics Collect
+  /// function.
+  ///
+  /// \param time The current time. This is used to check for
+  /// expired gauges.
+  ///
+  /// \return Zero or more metrics and their samples.
+  std::vector<MetricFamily> Collect(
+      const std::chrono::steady_clock::time_point& time) const override;
 
   /// \brief Removes a metrics family from the registry.
   ///
@@ -107,7 +118,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Registry : public Collectable {
 
   template <typename T>
   Family<T>& Add(const std::string& name, const std::string& help,
-                 const Labels& labels, double seconds);
+                 const Labels& labels, const std::chrono::seconds& ttl);
 
   const InsertBehavior insert_behavior_;
   std::vector<std::unique_ptr<Family<Counter>>> counters_;

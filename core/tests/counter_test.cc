@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
+#include <thread>
+
 namespace prometheus {
 namespace {
 
@@ -35,6 +38,14 @@ TEST(CounterTest, inc_negative_value) {
   counter.Increment(5.0);
   counter.Increment(-5.0);
   EXPECT_EQ(counter.Value(), 5.0);
+}
+
+TEST(CounterTest, not_expired) {
+  Counter counter;
+  counter.Increment();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  EXPECT_FALSE(counter.Expired(std::chrono::steady_clock::now(),
+                               std::chrono::seconds(1)));
 }
 
 }  // namespace

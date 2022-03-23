@@ -2,8 +2,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cstddef>
-#include <ctime>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -92,9 +92,12 @@ class PROMETHEUS_CPP_CORE_EXPORT Family : public Collectable {
   /// \param constant_labels Assign a set of key-value pairs (= labels) to the
   /// metric. All these labels are propagated to each time series within the
   /// metric.
+  /// \param ttl Set the time to live in seconds. Any gauges that are not
+  /// updated within `ttl` seconds will not be collected.
   /// \throw std::runtime_exception on invalid metric or label names.
   Family(const std::string& name, const std::string& help,
-         const Labels& constant_labels, double seconds);
+         const Labels& constant_labels,
+         const std::chrono::seconds& ttl = std::chrono::seconds::max());
 
   /// \brief Add a new dimensional data.
   ///
@@ -145,7 +148,17 @@ class PROMETHEUS_CPP_CORE_EXPORT Family : public Collectable {
   ///
   /// \return Zero or more samples for each dimensional data.
   std::vector<MetricFamily> Collect() const override;
-  std::vector<MetricFamily> Collect(std::time_t) const override;
+
+  /// \brief Returns the current value of each dimensional data.
+  ///
+  /// Collect is called by the Registry when collecting metrics.
+  ///
+  /// \param time The current time. This is used to check for
+  /// expired gauges.
+  ///
+  /// \return Zero or more samples for each dimensional data.
+  std::vector<MetricFamily> Collect(
+      const std::chrono::steady_clock::time_point& time) const override;
 
  private:
   std::unordered_map<Labels, std::unique_ptr<T>, detail::LabelHasher> metrics_;
@@ -153,7 +166,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Family : public Collectable {
   const std::string name_;
   const std::string help_;
   const Labels constant_labels_;
-  double seconds_;
+  std::chrono::seconds ttl_{std::chrono::seconds::max()};
   mutable std::mutex mutex_;
 
   ClientMetric CollectMetric(const Labels& labels, T* metric) const;

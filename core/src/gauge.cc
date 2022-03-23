@@ -1,5 +1,7 @@
 #include "prometheus/gauge.h"
 
+#include <ctime>
+
 namespace prometheus {
 
 Gauge::Gauge(const double value) : value_{value} {}
@@ -14,7 +16,7 @@ void Gauge::Decrement(const double value) { Change(-1.0 * value); }
 
 void Gauge::Set(const double value) {
   value_.store(value);
-  time_.store(std::time(nullptr));
+  time_.store(std::chrono::steady_clock::now());
 }
 
 void Gauge::Change(const double value) {
@@ -23,7 +25,7 @@ void Gauge::Change(const double value) {
   while (!value_.compare_exchange_weak(current, current + value)) {
     // intentionally empty block
   }
-  time_.store(std::time(nullptr));
+  time_.store(std::chrono::steady_clock::now());
 }
 
 void Gauge::SetToCurrentTime() {
@@ -39,8 +41,10 @@ ClientMetric Gauge::Collect() const {
   return metric;
 }
 
-bool Gauge::Expired(const std::time_t time, const double seconds) const {
-  return std::difftime(time, time_) > seconds;
+bool Gauge::Expired(const std::chrono::steady_clock::time_point& time,
+                    const std::chrono::seconds& ttl) const {
+  return std::chrono::duration_cast<std::chrono::seconds>(time -
+                                                          time_.load()) >= ttl;
 }
 
 }  // namespace prometheus

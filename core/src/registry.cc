@@ -1,6 +1,7 @@
 #include "prometheus/registry.h"
 
 #include <algorithm>
+#include <chrono>
 #include <iterator>
 #include <stdexcept>
 #include <tuple>
@@ -16,7 +17,7 @@ namespace prometheus {
 namespace {
 template <typename T>
 void CollectAll(std::vector<MetricFamily>& results, const T& families,
-                const std::time_t time) {
+                const std::chrono::steady_clock::time_point& time) {
   for (auto&& collectable : families) {
     auto metrics = collectable->Collect(time);
     results.insert(results.end(), std::make_move_iterator(metrics.begin()),
@@ -44,11 +45,11 @@ Registry::Registry(InsertBehavior insert_behavior)
 Registry::~Registry() = default;
 
 std::vector<MetricFamily> Registry::Collect() const {
-  const auto time = std::time(nullptr);
-  return Collect(time);
+  return Collect(std::chrono::steady_clock::now());
 }
 
-std::vector<MetricFamily> Registry::Collect(const std::time_t time) const {
+std::vector<MetricFamily> Registry::Collect(
+    const std::chrono::steady_clock::time_point& time) const {
   std::lock_guard<std::mutex> lock{mutex_};
   auto results = std::vector<MetricFamily>{};
 
@@ -102,7 +103,8 @@ bool Registry::NameExistsInOtherType<Summary>(const std::string& name) const {
 
 template <typename T>
 Family<T>& Registry::Add(const std::string& name, const std::string& help,
-                         const Labels& labels, const double seconds) {
+                         const Labels& labels,
+                         const std::chrono::seconds& ttl) {
   std::lock_guard<std::mutex> lock{mutex_};
 
   if (NameExistsInOtherType<T>(name)) {
@@ -135,7 +137,7 @@ Family<T>& Registry::Add(const std::string& name, const std::string& help,
     throw std::invalid_argument("Family name already exists");
   }
 
-  auto family = detail::make_unique<Family<T>>(name, help, labels, seconds);
+  auto family = detail::make_unique<Family<T>>(name, help, labels, ttl);
   auto& ref = *family;
   families.push_back(std::move(family));
   return ref;
@@ -143,19 +145,23 @@ Family<T>& Registry::Add(const std::string& name, const std::string& help,
 
 template Family<Counter>& Registry::Add(const std::string& name,
                                         const std::string& help,
-                                        const Labels& labels, double seconds);
+                                        const Labels& labels,
+                                        const std::chrono::seconds& ttl);
 
 template Family<Gauge>& Registry::Add(const std::string& name,
                                       const std::string& help,
-                                      const Labels& labels, double seconds);
+                                      const Labels& labels,
+                                      const std::chrono::seconds& ttl);
 
 template Family<Summary>& Registry::Add(const std::string& name,
                                         const std::string& help,
-                                        const Labels& labels, double seconds);
+                                        const Labels& labels,
+                                        const std::chrono::seconds& ttl);
 
 template Family<Histogram>& Registry::Add(const std::string& name,
                                           const std::string& help,
-                                          const Labels& labels, double seconds);
+                                          const Labels& labels,
+                                          const std::chrono::seconds& ttl);
 
 template <typename T>
 bool Registry::Remove(const Family<T>& family) {

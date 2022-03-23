@@ -2,9 +2,11 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <limits>
 #include <memory>
 #include <stdexcept>
+#include <thread>
 
 namespace prometheus {
 namespace {
@@ -124,6 +126,14 @@ TEST(HistogramTest, sum_can_go_down) {
   histogram.Observe(-10);
   auto metric2 = histogram.Collect();
   EXPECT_LT(metric2.histogram.sample_sum, metric1.histogram.sample_sum);
+}
+
+TEST(HistogramTest, not_expired) {
+  Histogram histogram{{1}};
+  histogram.Observe(0);
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  EXPECT_FALSE(histogram.Expired(std::chrono::steady_clock::now(),
+                                 std::chrono::seconds(1)));
 }
 
 }  // namespace

@@ -2,10 +2,12 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <chrono>
 #include <iterator>
 #include <map>
 #include <memory>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -64,6 +66,7 @@ TEST_F(BuilderTest, build_counter) {
                      .Name(name)
                      .Help(help)
                      .Labels(const_labels)
+                     .TTL(std::chrono::seconds::max())
                      .Register(registry);
   family.Add(more_labels);
 
@@ -75,6 +78,7 @@ TEST_F(BuilderTest, build_gauge) {
                      .Name(name)
                      .Help(help)
                      .Labels(const_labels)
+                     .TTL(std::chrono::seconds::max())
                      .Register(registry);
   family.Add(more_labels);
 
@@ -86,6 +90,7 @@ TEST_F(BuilderTest, build_histogram) {
                      .Name(name)
                      .Help(help)
                      .Labels(const_labels)
+                     .TTL(std::chrono::seconds::max())
                      .Register(registry);
   family.Add(more_labels, Histogram::BucketBoundaries{1, 2});
 
@@ -97,10 +102,40 @@ TEST_F(BuilderTest, build_summary) {
                      .Name(name)
                      .Help(help)
                      .Labels(const_labels)
+                     .TTL(std::chrono::seconds::max())
                      .Register(registry);
   family.Add(more_labels, Summary::Quantiles{});
 
   verifyCollectedLabels();
+}
+
+TEST_F(BuilderTest, build_gauge_expired) {
+  auto& family = BuildGauge()
+                     .Name(name)
+                     .Help(help)
+                     .Labels(const_labels)
+                     .TTL(std::chrono::seconds(1))
+                     .Register(registry);
+  family.Add(more_labels);
+
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  const auto collected = registry.Collect();
+  ASSERT_EQ(1U, collected.size());
+  EXPECT_TRUE(collected.at(0).metric.empty());
+}
+
+TEST_F(BuilderTest, build_gauge_not_expired) {
+  auto& family = BuildGauge()
+                     .Name(name)
+                     .Help(help)
+                     .Labels(const_labels)
+                     .Register(registry);
+  family.Add(more_labels);
+
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  const auto collected = registry.Collect();
+  ASSERT_EQ(1U, collected.size());
+  EXPECT_EQ(1U, collected.at(0).metric.size());
 }
 
 }  // namespace
