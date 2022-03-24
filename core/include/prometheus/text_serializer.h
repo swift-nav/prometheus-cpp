@@ -12,8 +12,12 @@ namespace prometheus {
 class PROMETHEUS_CPP_CORE_EXPORT TextSerializer : public Serializer {
  public:
   using Serializer::Serialize;
+  std::string Serialize(const std::vector<MetricFamily>& metrics,
+                        bool open_metrics) const;
   void Serialize(std::ostream& out,
                  const std::vector<MetricFamily>& metrics) const override;
+  void Serialize(std::ostream& out, const std::vector<MetricFamily>& metrics,
+                 bool open_metrics) const;
 };
 
 }  // namespace prometheus
