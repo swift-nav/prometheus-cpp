@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <tuple>
@@ -77,7 +78,7 @@ struct PROMETHEUS_CPP_CORE_EXPORT ClientMetric {
 
   // Timestamp
 
-  std::int64_t timestamp_ms = 0;
+  std::chrono::milliseconds timestamp{std::chrono::seconds::zero()};
 };
 
 }  // namespace prometheus
