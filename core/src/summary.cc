@@ -37,6 +37,10 @@ ClientMetric Summary::Collect() const {
   return metric;
 }
 
-bool Summary::Expired(std::time_t time, double seconds) const { return false; }
+bool Summary::Expired(std::time_t time, double seconds) const {
+  (void)time;
+  (void)seconds;
+  return false;
+}
 
 }  // namespace prometheus

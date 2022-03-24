@@ -19,6 +19,10 @@ ClientMetric Counter::Collect() const {
   return metric;
 }
 
-bool Counter::Expired(std::time_t time, double seconds) const { return false; }
+bool Counter::Expired(std::time_t time, double seconds) const {
+  (void)time;
+  (void)seconds;
+  return false;
+}
 
 }  // namespace prometheus

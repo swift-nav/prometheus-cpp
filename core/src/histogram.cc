@@ -69,6 +69,8 @@ ClientMetric Histogram::Collect() const {
 }
 
 bool Histogram::Expired(std::time_t time, double seconds) const {
+  (void)time;
+  (void)seconds;
   return false;
 }
 
