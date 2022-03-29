@@ -22,7 +22,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Collectable {
   /// \brief Returns a list of metrics and their samples.
   virtual std::vector<MetricFamily> Collect() const = 0;
   virtual std::vector<MetricFamily> Collect(
-      const std::chrono::steady_clock::time_point& time) const = 0;
+      const std::chrono::system_clock::time_point& time) const = 0;
 };
 
 }  // namespace prometheus

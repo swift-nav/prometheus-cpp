@@ -13,7 +13,7 @@ namespace prometheus {
 namespace detail {
 
 class PROMETHEUS_CPP_CORE_EXPORT TimeWindowQuantiles {
-  using Clock = std::chrono::steady_clock;
+  using Clock = std::chrono::system_clock;
 
  public:
   TimeWindowQuantiles(const std::vector<CKMSQuantiles::Quantile>& quantiles,

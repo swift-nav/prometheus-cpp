@@ -17,7 +17,7 @@ namespace prometheus {
 namespace {
 template <typename T>
 void CollectAll(std::vector<MetricFamily>& results, const T& families,
-                const std::chrono::steady_clock::time_point& time) {
+                const std::chrono::system_clock::time_point& time) {
   for (auto&& collectable : families) {
     auto metrics = collectable->Collect(time);
     results.insert(results.end(), std::make_move_iterator(metrics.begin()),
@@ -45,11 +45,11 @@ Registry::Registry(InsertBehavior insert_behavior)
 Registry::~Registry() = default;
 
 std::vector<MetricFamily> Registry::Collect() const {
-  return Collect(std::chrono::steady_clock::now());
+  return Collect(std::chrono::system_clock::now());
 }
 
 std::vector<MetricFamily> Registry::Collect(
-    const std::chrono::steady_clock::time_point& time) const {
+    const std::chrono::system_clock::time_point& time) const {
   std::lock_guard<std::mutex> lock{mutex_};
   auto results = std::vector<MetricFamily>{};
 

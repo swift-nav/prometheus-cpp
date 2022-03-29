@@ -69,14 +69,14 @@ class PROMETHEUS_CPP_CORE_EXPORT Gauge {
   /// \param time Time to live in seconds.
   ///
   /// \return Has the gauge expired.
-  bool Expired(const std::chrono::steady_clock::time_point& time,
+  bool Expired(const std::chrono::system_clock::time_point& time,
                const std::chrono::seconds& ttl) const;
 
  private:
   void Change(double);
   std::atomic<double> value_{0.0};
-  std::atomic<std::chrono::steady_clock::time_point> time_{
-      std::chrono::steady_clock::now()};
+  std::atomic<std::chrono::system_clock::time_point> time_{
+      std::chrono::system_clock::now()};
 };
 
 /// \brief Return a builder to configure and register a Gauge metric.

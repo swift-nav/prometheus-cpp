@@ -132,7 +132,7 @@ TEST(HistogramTest, not_expired) {
   Histogram histogram{{1}};
   histogram.Observe(0);
   std::this_thread::sleep_for(std::chrono::seconds(1));
-  EXPECT_FALSE(histogram.Expired(std::chrono::steady_clock::now(),
+  EXPECT_FALSE(histogram.Expired(std::chrono::system_clock::now(),
                                  std::chrono::seconds(1)));
 }
 

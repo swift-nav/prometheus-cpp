@@ -89,12 +89,12 @@ const Labels Family<T>::GetConstantLabels() const {
 
 template <typename T>
 std::vector<MetricFamily> Family<T>::Collect() const {
-  return Collect(std::chrono::steady_clock::now());
+  return Collect(std::chrono::system_clock::now());
 }
 
 template <typename T>
 std::vector<MetricFamily> Family<T>::Collect(
-    const std::chrono::steady_clock::time_point& time) const {
+    const std::chrono::system_clock::time_point& time) const {
   std::lock_guard<std::mutex> lock{mutex_};
 
   if (metrics_.empty()) {
