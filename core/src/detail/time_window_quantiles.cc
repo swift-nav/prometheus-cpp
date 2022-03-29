@@ -8,27 +8,29 @@ namespace detail {
 
 TimeWindowQuantiles::TimeWindowQuantiles(
     const std::vector<CKMSQuantiles::Quantile>& quantiles,
-    const Clock::duration max_age, const int age_buckets)
+    const Clock::time_point& creation_time, const Clock::duration max_age,
+    const int age_buckets)
     : quantiles_(quantiles),
       ckms_quantiles_(age_buckets, CKMSQuantiles(quantiles_)),
       current_bucket_(0),
-      last_rotation_(Clock::now()),
+      last_rotation_(creation_time),
       rotation_interval_(max_age / age_buckets) {}
 
-double TimeWindowQuantiles::get(double q) const {
-  CKMSQuantiles& current_bucket = rotate();
+double TimeWindowQuantiles::get(double q, const Clock::time_point& time) const {
+  CKMSQuantiles& current_bucket = rotate(time);
   return current_bucket.get(q);
 }
 
-void TimeWindowQuantiles::insert(double value) {
-  rotate();
+void TimeWindowQuantiles::insert(double value, const Clock::time_point& time) {
+  rotate(time);
   for (auto& bucket : ckms_quantiles_) {
     bucket.insert(value);
   }
 }
 
-CKMSQuantiles& TimeWindowQuantiles::rotate() const {
-  auto delta = Clock::now() - last_rotation_;
+CKMSQuantiles& TimeWindowQuantiles::rotate(
+    const Clock::time_point& time) const {
+  auto delta = time - last_rotation_;
   while (delta > rotation_interval_) {
     ckms_quantiles_[current_bucket_].reset();
 

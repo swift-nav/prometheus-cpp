@@ -109,16 +109,17 @@ std::vector<MetricFamily> Family<T>::Collect(
   for (const auto& m : metrics_) {
     if (!m.second->Expired(time, ttl_)) {
       family.metric.push_back(
-          std::move(CollectMetric(m.first, m.second.get())));
+          std::move(CollectMetric(m.first, m.second.get(), time)));
     }
   }
   return {family};
 }
 
 template <typename T>
-ClientMetric Family<T>::CollectMetric(const Labels& metric_labels,
-                                      T* metric) const {
-  auto collected = metric->Collect();
+ClientMetric Family<T>::CollectMetric(
+    const Labels& metric_labels, T* metric,
+    const std::chrono::system_clock::time_point& time) const {
+  auto collected = metric->Collect(time);
   collected.label.reserve(constant_labels_.size() + metric_labels.size());
   const auto add_label =
       [&collected](const std::pair<std::string, std::string>& label_pair) {

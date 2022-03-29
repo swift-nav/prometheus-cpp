@@ -41,6 +41,12 @@ ClientMetric Gauge::Collect() const {
   return metric;
 }
 
+ClientMetric Gauge::Collect(
+    const std::chrono::system_clock::time_point& time) const {
+  (void)time;
+  return Collect();
+}
+
 bool Gauge::Expired(const std::chrono::system_clock::time_point& time,
                     const std::chrono::seconds& ttl) const {
   return std::chrono::duration_cast<std::chrono::seconds>(time -

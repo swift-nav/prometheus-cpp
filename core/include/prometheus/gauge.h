@@ -58,6 +58,15 @@ class PROMETHEUS_CPP_CORE_EXPORT Gauge {
   /// Collect is called by the Registry when collecting metrics.
   ClientMetric Collect() const;
 
+  /// \brief Get the current value of the gauge.
+  ///
+  /// \param time The time of when this function was called.
+  ///
+  /// \return The current value.
+  ///
+  /// Collect is called by the Registry when collecting metrics.
+  ClientMetric Collect(const std::chrono::system_clock::time_point& time) const;
+
   /// \brief Check if the gauge has expired.
   ///
   /// Expires is called by the Registry when collecting metrics.
