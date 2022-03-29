@@ -80,6 +80,12 @@ ClientMetric Histogram::Collect() const {
   return metric;
 }
 
+ClientMetric Histogram::Collect(
+    const std::chrono::system_clock::time_point& time) const {
+  (void)time;
+  return Collect();
+}
+
 bool Histogram::Expired(const std::chrono::system_clock::time_point& time,
                         const std::chrono::seconds& ttl) {
   (void)time;

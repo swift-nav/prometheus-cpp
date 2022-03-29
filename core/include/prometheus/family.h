@@ -169,7 +169,9 @@ class PROMETHEUS_CPP_CORE_EXPORT Family : public Collectable {
   std::chrono::seconds ttl_{std::chrono::seconds::max()};
   mutable std::mutex mutex_;
 
-  ClientMetric CollectMetric(const Labels& labels, T* metric) const;
+  ClientMetric CollectMetric(
+      const Labels& labels, T* metric,
+      const std::chrono::system_clock::time_point& time) const;
   T& Add(const Labels& labels, std::unique_ptr<T> object);
 };
 

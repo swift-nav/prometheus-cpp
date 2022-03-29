@@ -17,13 +17,14 @@ class PROMETHEUS_CPP_CORE_EXPORT TimeWindowQuantiles {
 
  public:
   TimeWindowQuantiles(const std::vector<CKMSQuantiles::Quantile>& quantiles,
+                      const Clock::time_point& creation_time,
                       Clock::duration max_age_seconds, int age_buckets);
 
-  double get(double q) const;
-  void insert(double value);
+  double get(double q, const Clock::time_point& time) const;
+  void insert(double value, const Clock::time_point& time);
 
  private:
-  CKMSQuantiles& rotate() const;
+  CKMSQuantiles& rotate(const Clock::time_point& time) const;
 
   const std::vector<CKMSQuantiles::Quantile>& quantiles_;
   mutable std::vector<CKMSQuantiles> ckms_quantiles_;

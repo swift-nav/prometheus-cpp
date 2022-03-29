@@ -48,6 +48,15 @@ class PROMETHEUS_CPP_CORE_EXPORT Counter {
   /// Collect is called by the Registry when collecting metrics.
   ClientMetric Collect() const;
 
+  /// \brief Get the current value of the counter.
+  ///
+  /// \param time The time of when this function was called.
+  ///
+  /// \return The current value.
+  ///
+  /// Collect is called by the Registry when collecting metrics.
+  ClientMetric Collect(const std::chrono::system_clock::time_point& time) const;
+
   /// \brief Check if the counter has expired.
   ///
   /// Expires is called by the Registry when collecting metrics.
