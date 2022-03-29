@@ -53,7 +53,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Counter {
   /// Expires is called by the Registry when collecting metrics.
   ///
   /// A counter never expires.
-  static bool Expired(const std::chrono::steady_clock::time_point& time,
+  static bool Expired(const std::chrono::system_clock::time_point& time,
                       const std::chrono::seconds& ttl);
 
  private:

@@ -84,14 +84,14 @@ TEST(GaugeTest, set_expired) {
   gauge.Set(1.0);
   std::this_thread::sleep_for(std::chrono::seconds(1));
   EXPECT_TRUE(
-      gauge.Expired(std::chrono::steady_clock::now(), std::chrono::seconds(1)));
+      gauge.Expired(std::chrono::system_clock::now(), std::chrono::seconds(1)));
 }
 
 TEST(GaugeTest, set_not_expired) {
   Gauge gauge;
   gauge.Set(1.0);
   EXPECT_FALSE(
-      gauge.Expired(std::chrono::steady_clock::now(), std::chrono::seconds(1)));
+      gauge.Expired(std::chrono::system_clock::now(), std::chrono::seconds(1)));
 }
 
 TEST(GaugeTest, increment_expired) {
@@ -99,14 +99,14 @@ TEST(GaugeTest, increment_expired) {
   gauge.Increment();
   std::this_thread::sleep_for(std::chrono::seconds(1));
   EXPECT_TRUE(
-      gauge.Expired(std::chrono::steady_clock::now(), std::chrono::seconds(1)));
+      gauge.Expired(std::chrono::system_clock::now(), std::chrono::seconds(1)));
 }
 
 TEST(GaugeTest, increment_not_expired) {
   Gauge gauge;
   gauge.Increment();
   EXPECT_FALSE(
-      gauge.Expired(std::chrono::steady_clock::now(), std::chrono::seconds(1)));
+      gauge.Expired(std::chrono::system_clock::now(), std::chrono::seconds(1)));
 }
 
 }  // namespace

@@ -91,7 +91,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Registry : public Collectable {
   ///
   /// \return Zero or more metrics and their samples.
   std::vector<MetricFamily> Collect(
-      const std::chrono::steady_clock::time_point& time) const override;
+      const std::chrono::system_clock::time_point& time) const override;
 
   /// \brief Removes a metrics family from the registry.
   ///

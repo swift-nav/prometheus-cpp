@@ -158,7 +158,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Family : public Collectable {
   ///
   /// \return Zero or more samples for each dimensional data.
   std::vector<MetricFamily> Collect(
-      const std::chrono::steady_clock::time_point& time) const override;
+      const std::chrono::system_clock::time_point& time) const override;
 
  private:
   std::unordered_map<Labels, std::unique_ptr<T>, detail::LabelHasher> metrics_;

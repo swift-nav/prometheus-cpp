@@ -44,7 +44,7 @@ TEST(CounterTest, not_expired) {
   Counter counter;
   counter.Increment();
   std::this_thread::sleep_for(std::chrono::seconds(1));
-  EXPECT_FALSE(counter.Expired(std::chrono::steady_clock::now(),
+  EXPECT_FALSE(counter.Expired(std::chrono::system_clock::now(),
                                std::chrono::seconds(1)));
 }
 
