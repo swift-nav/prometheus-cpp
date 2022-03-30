@@ -77,6 +77,9 @@ if(RUN_IWYU)
   set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE ${IWYU_ARGS})
 endif()
 
+#set(CMAKE_C_CLANG_TIDY clang-tidy-12 -header-filter=.)
+#set(CMAKE_CXX_CLANG_TIDY clang-tidy-12 -header-filter=. -checks=-*,bugprone-*,cert-*,concurrency-*,cppcoreguidelines-*,google-*,misc-*,modernize-*,performance-*,portability-*,readability-*,-modernize-use-trailing-return-type,-misc-non-private-member-variables-in-classes,-modernize-pass-by-value,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-owning-memory,-cppcoreguidelines-macro-usage,-google-readability-todo,-cert-err58-cpp)
+
 # check for required libatomic
 
 include(CheckAtomic)
