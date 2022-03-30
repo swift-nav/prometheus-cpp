@@ -1,5 +1,6 @@
 #include "prometheus/text_serializer.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <limits>
@@ -76,87 +77,81 @@ void WriteHead(std::ostream& out, const MetricFamily& family,
 }
 
 // Write a line trailer: timestamp
-void WriteTail(std::ostream& out, const ClientMetric& metric,
-               const bool open_metrics) {
+void WriteTail(std::ostream& out, const ClientMetric& metric) {
   if (metric.timestamp != std::chrono::seconds::zero()) {
-    out << " ";
-    if (open_metrics) {
-      using FloatSeconds = std::chrono::duration<double>;
-      out << std::chrono::duration_cast<FloatSeconds>(metric.timestamp).count();
-    } else {
-      out << metric.timestamp.count();
-    }
+    using FloatSeconds = std::chrono::duration<double>;
+    out << " "
+        << std::chrono::duration_cast<FloatSeconds>(metric.timestamp).count();
   }
   out << "\n";
 }
 
 void SerializeCounter(std::ostream& out, const MetricFamily& family,
-                      const ClientMetric& metric, const bool open_metrics) {
+                      const ClientMetric& metric) {
   WriteHead(out, family, metric, "_total");
   WriteValue(out, metric.counter.value);
-  WriteTail(out, metric, open_metrics);
+  WriteTail(out, metric);
 }
 
 void SerializeGauge(std::ostream& out, const MetricFamily& family,
-                    const ClientMetric& metric, const bool open_metrics) {
+                    const ClientMetric& metric) {
   WriteHead(out, family, metric);
   WriteValue(out, metric.gauge.value);
-  WriteTail(out, metric, open_metrics);
+  WriteTail(out, metric);
 }
 
 void SerializeSummary(std::ostream& out, const MetricFamily& family,
-                      const ClientMetric& metric, const bool open_metrics) {
+                      const ClientMetric& metric) {
   auto& sum = metric.summary;
   WriteHead(out, family, metric, "_count");
   out << sum.sample_count;
-  WriteTail(out, metric, open_metrics);
+  WriteTail(out, metric);
 
   WriteHead(out, family, metric, "_sum");
   WriteValue(out, sum.sample_sum);
-  WriteTail(out, metric, open_metrics);
+  WriteTail(out, metric);
 
   for (auto& q : sum.quantile) {
     WriteHead(out, family, metric, "", "quantile", q.quantile);
     WriteValue(out, q.value);
-    WriteTail(out, metric, open_metrics);
+    WriteTail(out, metric);
   }
 }
 
 void SerializeUntyped(std::ostream& out, const MetricFamily& family,
-                      const ClientMetric& metric, const bool open_metrics) {
+                      const ClientMetric& metric) {
   WriteHead(out, family, metric);
   WriteValue(out, metric.untyped.value);
-  WriteTail(out, metric, open_metrics);
+  WriteTail(out, metric);
 }
 
 void SerializeHistogram(std::ostream& out, const MetricFamily& family,
-                        const ClientMetric& metric, const bool open_metrics) {
+                        const ClientMetric& metric) {
   auto& hist = metric.histogram;
   WriteHead(out, family, metric, "_count");
   out << hist.sample_count;
-  WriteTail(out, metric, open_metrics);
+  WriteTail(out, metric);
 
   WriteHead(out, family, metric, "_sum");
   WriteValue(out, hist.sample_sum);
-  WriteTail(out, metric, open_metrics);
+  WriteTail(out, metric);
 
   double last = -std::numeric_limits<double>::infinity();
   for (auto& b : hist.bucket) {
     WriteHead(out, family, metric, "_bucket", "le", b.upper_bound);
     last = b.upper_bound;
     out << b.cumulative_count;
-    WriteTail(out, metric, open_metrics);
+    WriteTail(out, metric);
   }
 
   if (last != std::numeric_limits<double>::infinity()) {
     WriteHead(out, family, metric, "_bucket", "le", "+Inf");
     out << hist.sample_count;
-    WriteTail(out, metric, open_metrics);
+    WriteTail(out, metric);
   }
 }
 
-void SerializeFamily(std::ostream& out, const MetricFamily& family,
-                     const bool open_metrics) {
+void SerializeFamily(std::ostream& out, const MetricFamily& family) {
   const auto ends_with = [](const std::string& value,
                             const std::string& ending) -> bool {
     if (ending.size() > value.size()) {
@@ -181,90 +176,52 @@ void SerializeFamily(std::ostream& out, const MetricFamily& family,
   std::stable_sort(sorted_family.metric.begin(), sorted_family.metric.end(),
                    compare_metrics);
 
+  if (sorted_family.type == MetricType::Counter) {
+    remove_suffix(sorted_family.name, "_total");
+  }
+
+  if (!sorted_family.help.empty()) {
+    out << "# HELP " << sorted_family.name << " " << sorted_family.help << "\n";
+  }
+
   switch (sorted_family.type) {
     case MetricType::Counter: {
-      remove_suffix(sorted_family.name, "_total");
-      out << "# TYPE " << sorted_family.name;
-      if (!open_metrics) {
-        out << "_total";
-      }
-      out << " counter\n";
-      if (!sorted_family.help.empty()) {
-        out << "# HELP " << sorted_family.name;
-        if (!open_metrics) {
-          out << "_total";
-        }
-        out << " " << sorted_family.help << "\n";
-      }
+      out << "# TYPE " << sorted_family.name << " counter\n";
       for (const auto& metric : sorted_family.metric) {
-        SerializeCounter(out, sorted_family, metric, open_metrics);
+        SerializeCounter(out, sorted_family, metric);
       }
       break;
     }
     case MetricType::Gauge:
       out << "# TYPE " << sorted_family.name << " gauge\n";
-      if (!sorted_family.help.empty()) {
-        out << "# HELP " << sorted_family.name << " " << sorted_family.help
-            << "\n";
-      }
       for (auto& metric : sorted_family.metric) {
-        SerializeGauge(out, sorted_family, metric, open_metrics);
+        SerializeGauge(out, sorted_family, metric);
       }
       break;
     case MetricType::Summary:
       out << "# TYPE " << sorted_family.name << " summary\n";
-      if (!sorted_family.help.empty()) {
-        out << "# HELP " << sorted_family.name << " " << sorted_family.help
-            << "\n";
-      }
       for (auto& metric : sorted_family.metric) {
-        SerializeSummary(out, sorted_family, metric, open_metrics);
+        SerializeSummary(out, sorted_family, metric);
       }
       break;
     case MetricType::Untyped:
-      out << "# TYPE " << sorted_family.name;
-      if (open_metrics) {
-        out << " unknown\n";
-      } else {
-        out << " untyped\n";
-      }
-      if (!sorted_family.help.empty()) {
-        out << "# HELP " << sorted_family.name << " " << sorted_family.help
-            << "\n";
-      }
+      out << "# TYPE " << sorted_family.name << " unknown\n";
       for (auto& metric : sorted_family.metric) {
-        SerializeUntyped(out, sorted_family, metric, open_metrics);
+        SerializeUntyped(out, sorted_family, metric);
       }
       break;
     case MetricType::Histogram:
       out << "# TYPE " << sorted_family.name << " histogram\n";
-      if (!sorted_family.help.empty()) {
-        out << "# HELP " << sorted_family.name << " " << sorted_family.help
-            << "\n";
-      }
       for (auto& metric : sorted_family.metric) {
-        SerializeHistogram(out, sorted_family, metric, open_metrics);
+        SerializeHistogram(out, sorted_family, metric);
       }
       break;
   }
 }
 }  // namespace
 
-std::string TextSerializer::Serialize(const std::vector<MetricFamily>& metrics,
-                                      const bool open_metrics) const {
-  std::ostringstream ss;
-  Serialize(ss, metrics, open_metrics);
-  return ss.str();
-}
-
 void TextSerializer::Serialize(std::ostream& out,
                                const std::vector<MetricFamily>& metrics) const {
-  Serialize(out, metrics, false);
-}
-
-void TextSerializer::Serialize(std::ostream& out,
-                               const std::vector<MetricFamily>& metrics,
-                               const bool open_metrics) const {
   auto saved_locale = out.getloc();
   auto saved_precision = out.precision();
 
@@ -272,14 +229,13 @@ void TextSerializer::Serialize(std::ostream& out,
   out.precision(std::numeric_limits<double>::max_digits10 - 1);
 
   for (auto& family : metrics) {
-    SerializeFamily(out, family, open_metrics);
+    SerializeFamily(out, family);
   }
 
-  if (open_metrics) {
-    out << "# EOF\n";
-  }
+  out << "# EOF\n";
 
   out.imbue(saved_locale);
   out.precision(saved_precision);
 }
+
 }  // namespace prometheus
