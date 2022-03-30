@@ -11,7 +11,11 @@ namespace detail {
 
 namespace {
 class AlwaysAllowAccessHandler : public CivetAuthHandler {
-  bool authorize(CivetServer*, struct mg_connection*) override { return true; }
+  bool authorize(CivetServer* server, struct mg_connection* conn) override {
+    (void)server;
+    (void)conn;
+    return true;
+  }
 };
 
 AlwaysAllowAccessHandler alwaysAllowAccessHandler;

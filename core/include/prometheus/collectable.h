@@ -17,9 +17,16 @@ namespace prometheus {
 class PROMETHEUS_CPP_CORE_EXPORT Collectable {
  public:
   virtual ~Collectable() = default;
+  Collectable(const Collectable&) = default;
+  Collectable& operator=(const Collectable&) = default;
+  Collectable(Collectable&&) = default;
+  Collectable& operator=(Collectable&&) = default;
 
   /// \brief Returns a list of metrics and their samples.
   virtual std::vector<MetricFamily> Collect() const = 0;
+
+ protected:
+  Collectable() = default;
 };
 
 }  // namespace prometheus

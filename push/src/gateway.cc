@@ -18,6 +18,10 @@
 
 namespace prometheus {
 
+constexpr int kInformational = 100;
+constexpr int kOK = 200;
+constexpr int kError = 400;
+
 Gateway::Gateway(const std::string& host, const std::string& port,
                  const std::string& jobname, const Labels& labels,
                  const std::string& username, const std::string& password) {
@@ -28,7 +32,7 @@ Gateway::Gateway(const std::string& host, const std::string& port,
   jobUri_ = jobUriStream.str();
 
   std::stringstream labelStream;
-  for (auto& label : labels) {
+  for (const auto& label : labels) {
     labelStream << "/" << label.first << "/" << label.second;
   }
   labels_ = labelStream.str();
@@ -47,15 +51,15 @@ void Gateway::RegisterCollectable(const std::weak_ptr<Collectable>& collectable,
                                   const Labels* labels) {
   std::stringstream ss;
 
-  if (labels) {
-    for (auto& label : *labels) {
+  if (labels != nullptr) {
+    for (const auto& label : *labels) {
       ss << "/" << label.first << "/" << label.second;
     }
   }
 
   std::lock_guard<std::mutex> lock{mutex_};
   CleanupStalePointers(collectables_);
-  collectables_.push_back(std::make_pair(collectable, ss.str()));
+  collectables_.emplace_back(collectable, ss.str());
 }
 
 std::string Gateway::getUri(const CollectableEntry& collectable) const {
@@ -84,12 +88,12 @@ int Gateway::push(detail::HttpMethod method) {
     auto uri = getUri(wcollectable);
     auto status_code = curlWrapper_->performHttpRequest(method, uri, body);
 
-    if (status_code < 100 || status_code >= 400) {
+    if (status_code < kInformational || status_code >= kError) {
       return status_code;
     }
   }
 
-  return 200;
+  return kOK;
 }
 
 std::future<int> Gateway::AsyncPush() {
@@ -121,12 +125,12 @@ std::future<int> Gateway::async_push(detail::HttpMethod method) {
   }
 
   const auto reduceFutures = [](std::vector<std::future<int>> lfutures) {
-    auto final_status_code = 200;
+    auto final_status_code = kOK;
 
     for (auto& future : lfutures) {
       auto status_code = future.get();
 
-      if (status_code < 100 || status_code >= 400) {
+      if (status_code < kInformational || status_code >= kError) {
         final_status_code = status_code;
       }
     }

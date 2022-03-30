@@ -11,7 +11,7 @@ namespace detail {
 
 std::size_t LabelHasher::operator()(const Labels& labels) const {
   size_t seed = 0;
-  for (auto& label : labels) {
+  for (const auto& label : labels) {
     hash_combine(&seed, label.first, label.second);
   }
 

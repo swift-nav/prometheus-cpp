@@ -56,18 +56,20 @@ TEST(SummaryTest, quantile_bounds) {
 }
 
 TEST(SummaryTest, quantile_values) {
-  static const int SAMPLES = 1000000;
+  static const int samples = 1000000;
 
   Summary summary{Summary::Quantiles{{0.5, 0.05}, {0.9, 0.01}, {0.99, 0.001}}};
-  for (int i = 1; i <= SAMPLES; ++i) summary.Observe(i);
+  for (int i = 1; i <= samples; ++i) {
+    summary.Observe(i);
+  }
 
   auto metric = summary.Collect();
   auto s = metric.summary;
   ASSERT_EQ(s.quantile.size(), 3U);
 
-  EXPECT_NEAR(s.quantile.at(0).value, 0.5 * SAMPLES, 0.05 * SAMPLES);
-  EXPECT_NEAR(s.quantile.at(1).value, 0.9 * SAMPLES, 0.01 * SAMPLES);
-  EXPECT_NEAR(s.quantile.at(2).value, 0.99 * SAMPLES, 0.001 * SAMPLES);
+  EXPECT_NEAR(s.quantile.at(0).value, 0.5 * samples, 0.05 * samples);
+  EXPECT_NEAR(s.quantile.at(1).value, 0.9 * samples, 0.01 * samples);
+  EXPECT_NEAR(s.quantile.at(2).value, 0.99 * samples, 0.001 * samples);
 }
 
 TEST(SummaryTest, max_age) {
@@ -80,10 +82,11 @@ TEST(SummaryTest, max_age) {
     auto s = metric.summary;
     ASSERT_EQ(s.quantile.size(), 1U);
 
-    if (std::isnan(ref))
+    if (std::isnan(ref)) {
       EXPECT_TRUE(std::isnan(s.quantile.at(0).value));
-    else
+    } else {
       EXPECT_DOUBLE_EQ(s.quantile.at(0).value, ref);
+    }
   };
 
   test_value(8.0);
@@ -95,7 +98,7 @@ TEST(SummaryTest, max_age) {
 
 TEST(SummaryTest, construction_with_dynamic_quantile_vector) {
   auto quantiles = Summary::Quantiles{{0.99, 0.001}};
-  quantiles.push_back({0.5, 0.05});
+  quantiles.emplace_back(0.5, 0.05);
 
   Summary summary{quantiles, std::chrono::seconds(1), 2};
   summary.Observe(8.0);

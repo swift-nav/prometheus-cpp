@@ -28,15 +28,19 @@ https://github.com/mvorbrodt/blog/blob/master/src/base64.hpp
 inline std::string base64_decode(const std::string& input) {
   const char kPadCharacter = '=';
 
-  if (input.length() % 4) {
+  if (input.length() % 4 != 0) {
     throw std::runtime_error("Invalid base64 length!");
   }
 
   std::size_t padding = 0;
 
   if (!input.empty()) {
-    if (input[input.length() - 1] == kPadCharacter) padding++;
-    if (input[input.length() - 2] == kPadCharacter) padding++;
+    if (input[input.length() - 1] == kPadCharacter) {
+      padding++;
+    }
+    if (input[input.length() - 2] == kPadCharacter) {
+      padding++;
+    }
   }
 
   std::string decoded;

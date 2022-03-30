@@ -12,9 +12,16 @@ namespace prometheus {
 class PROMETHEUS_CPP_CORE_EXPORT Serializer {
  public:
   virtual ~Serializer() = default;
-  virtual std::string Serialize(const std::vector<MetricFamily>&) const;
+  Serializer(const Serializer&) = default;
+  Serializer& operator=(const Serializer&) = default;
+  Serializer(Serializer&&) = default;
+  Serializer& operator=(Serializer&&) = default;
+  virtual std::string Serialize(const std::vector<MetricFamily>& metrics) const;
   virtual void Serialize(std::ostream& out,
                          const std::vector<MetricFamily>& metrics) const = 0;
+
+ protected:
+  Serializer() = default;
 };
 
 }  // namespace prometheus

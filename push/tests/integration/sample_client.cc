@@ -26,20 +26,18 @@ static std::string GetHostName() {
 }
 
 int main() {
-  using namespace prometheus;
-
   // create a push gateway
-  const auto labels = Gateway::GetInstanceLabel(GetHostName());
+  const auto labels = prometheus::Gateway::GetInstanceLabel(GetHostName());
 
-  Gateway gateway{"127.0.0.1", "9091", "sample_client", labels};
+  prometheus::Gateway gateway{"127.0.0.1", "9091", "sample_client", labels};
 
   // create a metrics registry with component=main labels applied to all its
   // metrics
-  auto registry = std::make_shared<Registry>();
+  auto registry = std::make_shared<prometheus::Registry>();
 
   // add a new counter family to the registry (families combine values with the
   // same name, but distinct label dimensions)
-  auto& counter_family = BuildCounter()
+  auto& counter_family = prometheus::BuildCounter()
                              .Name("time_running_seconds_total")
                              .Help("How many seconds is this server running?")
                              .Labels({{"label", "value"}})

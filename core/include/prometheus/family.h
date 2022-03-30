@@ -132,7 +132,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Family : public Collectable {
   /// \brief Returns the constant labels for this family.
   ///
   /// \return All constant labels as key-value pairs.
-  const Labels GetConstantLabels() const;
+  const Labels& GetConstantLabels() const;
 
   /// \brief Returns the current value of each dimensional data.
   ///

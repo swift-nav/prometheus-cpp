@@ -23,7 +23,7 @@ bool is_strict_sorted(ForwardIterator first, ForwardIterator last) {
 }  // namespace
 
 Histogram::Histogram(const BucketBoundaries& buckets)
-    : bucket_boundaries_{buckets}, bucket_counts_{buckets.size() + 1}, sum_{} {
+    : bucket_boundaries_{buckets}, bucket_counts_{buckets.size() + 1} {
   if (!is_strict_sorted(begin(bucket_boundaries_), end(bucket_boundaries_))) {
     throw std::invalid_argument("Bucket Boundaries must be strictly sorted");
   }
@@ -63,16 +63,16 @@ ClientMetric Histogram::Collect() const {
 
   auto metric = ClientMetric{};
 
-  auto cumulative_count = 0ULL;
+  std::uint64_t cumulative_count = 0;
   metric.histogram.bucket.reserve(bucket_counts_.size());
   for (std::size_t i{0}; i < bucket_counts_.size(); ++i) {
-    cumulative_count += bucket_counts_[i].Value();
+    cumulative_count += static_cast<std::uint64_t>(bucket_counts_[i].Value());
     auto bucket = ClientMetric::Bucket{};
     bucket.cumulative_count = cumulative_count;
     bucket.upper_bound = (i == bucket_boundaries_.size()
                               ? std::numeric_limits<double>::infinity()
                               : bucket_boundaries_[i]);
-    metric.histogram.bucket.push_back(std::move(bucket));
+    metric.histogram.bucket.push_back(bucket);
   }
   metric.histogram.sample_count = cumulative_count;
   metric.histogram.sample_sum = sum_.Value();

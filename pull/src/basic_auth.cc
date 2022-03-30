@@ -18,7 +18,9 @@ bool BasicAuthHandler::authorize(CivetServer* server, mg_connection* conn) {
   return true;
 }
 
-bool BasicAuthHandler::AuthorizeInner(CivetServer*, mg_connection* conn) {
+bool BasicAuthHandler::AuthorizeInner(CivetServer* server,
+                                      mg_connection* conn) {
+  (void)server;
   const char* authHeader = mg_get_header(conn, "Authorization");
 
   if (authHeader == nullptr) {

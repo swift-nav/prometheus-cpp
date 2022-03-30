@@ -9,16 +9,14 @@
 #include "prometheus/registry.h"
 
 int main() {
-  using namespace prometheus;
-
   // create an http server running on port 8080
-  Exposer exposer{"127.0.0.1:8080", 1};
+  prometheus::Exposer exposer{"127.0.0.1:8080", 1};
 
-  auto registryA = std::make_shared<Registry>();
+  auto registryA = std::make_shared<prometheus::Registry>();
 
   // add a new counter family to the registry (families combine values with the
   // same name, but distinct label dimensions)
-  auto& counter_familyA = BuildCounter()
+  auto& counter_familyA = prometheus::BuildCounter()
                               .Name("time_running_seconds_total")
                               .Help("How many seconds is this server running?")
                               .Register(*registryA);
@@ -30,10 +28,10 @@ int main() {
   // ask the exposer to scrape registryA on incoming scrapes for "/metricsA"
   exposer.RegisterCollectable(registryA, "/metricsA");
 
-  auto registryB = std::make_shared<Registry>();
+  auto registryB = std::make_shared<prometheus::Registry>();
 
   auto& counter_familyB =
-      BuildCounter()
+      prometheus::BuildCounter()
           .Name("other_time_running_seconds_total")
           .Help("How many seconds has something else been running?")
           .Register(*registryB);

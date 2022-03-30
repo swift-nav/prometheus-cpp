@@ -44,8 +44,8 @@ MetricsHandler::MetricsHandler(Registry& registry)
 #ifdef HAVE_ZLIB
 static bool IsEncodingAccepted(struct mg_connection* conn,
                                const char* encoding) {
-  auto accept_encoding = mg_get_header(conn, "Accept-Encoding");
-  if (!accept_encoding) {
+  const auto* accept_encoding = mg_get_header(conn, "Accept-Encoding");
+  if (accept_encoding == nullptr) {
     return false;
   }
   return std::strstr(accept_encoding, encoding) != nullptr;
@@ -53,20 +53,20 @@ static bool IsEncodingAccepted(struct mg_connection* conn,
 
 static std::vector<Byte> GZipCompress(const std::string& input) {
   auto zs = z_stream{};
-  auto windowSize = 16 + MAX_WBITS;
-  auto memoryLevel = 9;
+  const auto windowSize = 16 + MAX_WBITS;
+  const auto memoryLevel = 9;
 
   if (deflateInit2(&zs, Z_DEFAULT_COMPRESSION, Z_DEFLATED, windowSize,
                    memoryLevel, Z_DEFAULT_STRATEGY) != Z_OK) {
     return {};
   }
 
-  zs.next_in = (Bytef*)input.data();
+  zs.next_in = const_cast<Bytef*>(reinterpret_cast<const Bytef*>(input.data()));
   zs.avail_in = input.size();
 
-  int ret;
+  int ret = 0;
   std::vector<Byte> output;
-  output.reserve(input.size() / 2u);
+  output.reserve(input.size() / 2U);
 
   do {
     static const auto outputBytesPerRound = std::size_t{32768};
@@ -139,7 +139,9 @@ void MetricsHandler::RemoveCollectable(
                       std::end(collectables_));
 }
 
-bool MetricsHandler::handleGet(CivetServer*, struct mg_connection* conn) {
+bool MetricsHandler::handleGet(CivetServer* server,
+                               struct mg_connection* conn) {
+  (void)server;
   auto start_time_of_request = std::chrono::steady_clock::now();
 
   std::vector<MetricFamily> metrics;
@@ -156,9 +158,9 @@ bool MetricsHandler::handleGet(CivetServer*, struct mg_connection* conn) {
   auto stop_time_of_request = std::chrono::steady_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
       stop_time_of_request - start_time_of_request);
-  request_latencies_.Observe(duration.count());
+  request_latencies_.Observe(static_cast<double>(duration.count()));
 
-  bytes_transferred_.Increment(bodySize);
+  bytes_transferred_.Increment(static_cast<double>(bodySize));
   num_scrapes_.Increment();
   return true;
 }

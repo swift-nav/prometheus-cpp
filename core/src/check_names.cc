@@ -27,9 +27,7 @@ bool nameStartsValid(const std::string& name) {
 
   // must not start with "__"
   auto reserved_for_internal_purposes = name.compare(0, 2, "__") == 0;
-  if (reserved_for_internal_purposes) return false;
-
-  return true;
+  return !reserved_for_internal_purposes;
 }
 }  // anonymous namespace
 

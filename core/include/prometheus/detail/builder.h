@@ -19,9 +19,9 @@ template <typename T>
 class Builder {
  public:
   Builder& Labels(const ::prometheus::Labels& labels);
-  Builder& Name(const std::string&);
-  Builder& Help(const std::string&);
-  Family<T>& Register(Registry&);
+  Builder& Name(const std::string& name);
+  Builder& Help(const std::string& help);
+  Family<T>& Register(Registry& registry);
 
  private:
   ::prometheus::Labels labels_;

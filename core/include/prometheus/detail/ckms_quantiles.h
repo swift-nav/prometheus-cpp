@@ -44,7 +44,6 @@ class PROMETHEUS_CPP_CORE_EXPORT CKMSQuantiles {
   bool insertBatch();
   void compress();
 
- private:
   const std::reference_wrapper<const std::vector<Quantile>> quantiles_;
 
   std::size_t count_;

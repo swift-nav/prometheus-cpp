@@ -44,7 +44,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Histogram {
   /// exponential etc..
   ///
   /// The bucket boundaries cannot be changed once the histogram is created.
-  Histogram(const BucketBoundaries& buckets);
+  explicit Histogram(const BucketBoundaries& buckets);
 
   /// \brief Observe the given amount.
   ///
@@ -60,7 +60,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Histogram {
   /// this function must have already sorted the values into buckets).
   /// Also increments the total sum of all observations by the given value.
   void ObserveMultiple(const std::vector<double>& bucket_increments,
-                       const double sum_of_values);
+                       double sum_of_values);
 
   /// \brief Get the current value of the counter.
   ///

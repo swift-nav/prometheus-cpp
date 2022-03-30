@@ -4,11 +4,11 @@ namespace prometheus {
 
 void Counter::Increment() { gauge_.Increment(); }
 
-void Counter::Increment(const double val) {
-  if (val < 0.0) {
+void Counter::Increment(const double value) {
+  if (value < 0.0) {
     return;
   }
-  gauge_.Increment(val);
+  gauge_.Increment(value);
 }
 
 double Counter::Value() const { return gauge_.Value(); }

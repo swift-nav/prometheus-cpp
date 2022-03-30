@@ -12,21 +12,19 @@
 #include "prometheus/registry.h"
 
 int main() {
-  using namespace prometheus;
-
   // create an http server running on port 8080
-  Exposer exposer{"127.0.0.1:8080"};
+  prometheus::Exposer exposer{"127.0.0.1:8080"};
 
   // create a metrics registry
   // @note it's the users responsibility to keep the object alive
-  auto registry = std::make_shared<Registry>();
+  auto registry = std::make_shared<prometheus::Registry>();
 
   // add a new counter family to the registry (families combine values with the
   // same name, but distinct label dimensions)
   //
   // @note please follow the metric-naming best-practices:
   // https://prometheus.io/docs/practices/naming/
-  auto& packet_counter = BuildCounter()
+  auto& packet_counter = prometheus::BuildCounter()
                              .Name("observed_packets_total")
                              .Help("Number of observed packets")
                              .Register(*registry);
@@ -44,7 +42,7 @@ int main() {
   // add a counter whose dimensional data is not known at compile time
   // nevertheless dimensional values should only occur in low cardinality:
   // https://prometheus.io/docs/practices/naming/#labels
-  auto& http_requests_counter = BuildCounter()
+  auto& http_requests_counter = prometheus::BuildCounter()
                                     .Name("http_requests_total")
                                     .Help("Number of HTTP requests")
                                     .Register(*registry);
@@ -56,10 +54,18 @@ int main() {
     std::this_thread::sleep_for(std::chrono::seconds(1));
     const auto random_value = std::rand();
 
-    if (random_value & 1) tcp_rx_counter.Increment();
-    if (random_value & 2) tcp_tx_counter.Increment();
-    if (random_value & 4) udp_rx_counter.Increment();
-    if (random_value & 8) udp_tx_counter.Increment();
+    if ((random_value & 1) == 0) {
+      tcp_rx_counter.Increment();
+    }
+    if ((random_value & 2) == 0) {
+      tcp_tx_counter.Increment();
+    }
+    if ((random_value & 4) == 0) {
+      udp_rx_counter.Increment();
+    }
+    if ((random_value & 8) == 0) {
+      udp_tx_counter.Increment();
+    }
 
     const std::array<std::string, 4> methods = {"GET", "PUT", "POST", "HEAD"};
     auto method = methods.at(random_value % methods.size());

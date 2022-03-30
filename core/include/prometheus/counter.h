@@ -36,7 +36,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Counter {
   /// \brief Increment the counter by a given amount.
   ///
   /// The counter will not change if the given amount is negative.
-  void Increment(double);
+  void Increment(double value);
 
   /// \brief Get the current value of the counter.
   double Value() const;

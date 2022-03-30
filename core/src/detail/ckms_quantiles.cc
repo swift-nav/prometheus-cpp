@@ -71,7 +71,7 @@ double CKMSQuantiles::allowableError(int rank) {
   double minError = size + 1;
 
   for (const auto& q : quantiles_.get()) {
-    double error;
+    double error = NAN;
     if (rank <= q.quantile * size) {
       error = q.u * (size - rank);
     } else {
@@ -112,7 +112,7 @@ bool CKMSQuantiles::insertBatch() {
       --idx;
     }
 
-    int delta;
+    int delta = 0;
     if (idx - 1 == 0 || idx + 1 == sample_.size()) {
       delta = 0;
     } else {
@@ -133,18 +133,18 @@ void CKMSQuantiles::compress() {
     return;
   }
 
-  std::size_t idx = 0;
-  std::size_t prev;
-  std::size_t next = idx++;
+  auto idx = sample_.begin();
+  auto prev = sample_.begin();
+  auto next = idx++;
 
-  while (idx < sample_.size()) {
+  while (idx <= sample_.end()) {
     prev = next;
     next = idx++;
 
-    if (sample_[prev].g + sample_[next].g + sample_[next].delta <=
-        allowableError(idx - 1)) {
-      sample_[next].g += sample_[prev].g;
-      sample_.erase(sample_.begin() + prev);
+    if (static_cast<double>(prev->g + next->g + next->delta) <=
+        allowableError(sample_.begin() - idx - 1)) {
+      next->g += prev->g;
+      sample_.erase(prev);
     }
   }
 }

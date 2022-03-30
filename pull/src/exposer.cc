@@ -18,10 +18,9 @@ Exposer::Exposer(const std::string& bind_address, const std::size_t num_threads,
                                    "num_threads", std::to_string(num_threads)},
           callbacks) {}
 
-Exposer::Exposer(std::vector<std::string> options,
+Exposer::Exposer(const std::vector<std::string>& options,
                  const CivetCallbacks* callbacks)
-    : server_(detail::make_unique<CivetServer>(std::move(options), callbacks)) {
-}
+    : server_(detail::make_unique<CivetServer>(options, callbacks)) {}
 
 Exposer::~Exposer() = default;
 
@@ -57,7 +56,7 @@ detail::Endpoint& Exposer::GetEndpointForUri(const std::string& uri) {
   };
   auto it = std::find_if(std::begin(endpoints_), std::end(endpoints_), sameUri);
   if (it != std::end(endpoints_)) {
-    return *it->get();
+    return **it;
   }
 
   endpoints_.emplace_back(detail::make_unique<detail::Endpoint>(*server_, uri));

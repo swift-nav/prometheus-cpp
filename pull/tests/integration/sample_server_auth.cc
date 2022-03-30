@@ -10,16 +10,14 @@
 #include "prometheus/registry.h"
 
 int main() {
-  using namespace prometheus;
-
   // create an http server running on port 8080
-  Exposer exposer{"127.0.0.1:8080", 1};
+  prometheus::Exposer exposer{"127.0.0.1:8080", 1};
 
-  auto registry = std::make_shared<Registry>();
+  auto registry = std::make_shared<prometheus::Registry>();
 
   // add a new counter family to the registry (families combine values with the
   // same name, but distinct label dimensions)
-  auto& counter_family = BuildCounter()
+  auto& counter_family = prometheus::BuildCounter()
                              .Name("time_running_seconds_total")
                              .Help("How many seconds is this server running?")
                              .Register(*registry);

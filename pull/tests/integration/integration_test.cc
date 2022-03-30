@@ -18,8 +18,6 @@
 namespace prometheus {
 namespace {
 
-using namespace testing;
-
 class IntegrationTest : public testing::Test {
  public:
   void SetUp() override {
@@ -36,7 +34,7 @@ class IntegrationTest : public testing::Test {
 
   std::function<void(CURL*)> fetchPrePerform_;
 
-  Resonse FetchMetrics(std::string metrics_path) {
+  Resonse FetchMetrics(const std::string& metrics_path) const {
     auto curl = std::shared_ptr<CURL>(curl_easy_init(), curl_easy_cleanup);
     if (!curl) {
       throw std::runtime_error("failed to initialize libcurl");
@@ -62,7 +60,7 @@ class IntegrationTest : public testing::Test {
 
     char* ct = nullptr;
     curl_easy_getinfo(curl.get(), CURLINFO_CONTENT_TYPE, &ct);
-    if (ct) {
+    if (ct != nullptr) {
       response.contentType = ct;
     }
 
@@ -70,7 +68,7 @@ class IntegrationTest : public testing::Test {
   }
 
   std::shared_ptr<Registry> RegisterSomeCounter(const std::string& name,
-                                                const std::string& path) {
+                                                const std::string& path) const {
     const auto registry = std::make_shared<Registry>();
 
     BuildCounter().Name(name).Register(*registry).Add({}).Increment();
@@ -88,7 +86,7 @@ class IntegrationTest : public testing::Test {
  private:
   static size_t WriteCallback(void* contents, size_t size, size_t nmemb,
                               void* userp) {
-    auto response = reinterpret_cast<std::string*>(userp);
+    auto* response = reinterpret_cast<std::string*>(userp);
 
     size_t realsize = size * nmemb;
     response->append(reinterpret_cast<const char*>(contents), realsize);
@@ -109,7 +107,7 @@ TEST_F(IntegrationTest, exposeSingleCounter) {
   const auto metrics = FetchMetrics(default_metrics_path_);
 
   ASSERT_EQ(metrics.code, 200);
-  EXPECT_THAT(metrics.body, HasSubstr(counter_name));
+  EXPECT_THAT(metrics.body, testing::HasSubstr(counter_name));
 }
 
 TEST_F(IntegrationTest, exposesCountersOnDifferentUrls) {
@@ -134,11 +132,13 @@ TEST_F(IntegrationTest, exposesCountersOnDifferentUrls) {
   ASSERT_EQ(first_metrics.code, 200);
   ASSERT_EQ(second_metrics.code, 200);
 
-  EXPECT_THAT(first_metrics.body, HasSubstr(first_counter_name));
-  EXPECT_THAT(second_metrics.body, HasSubstr(second_counter_name));
+  EXPECT_THAT(first_metrics.body, testing::HasSubstr(first_counter_name));
+  EXPECT_THAT(second_metrics.body, testing::HasSubstr(second_counter_name));
 
-  EXPECT_THAT(first_metrics.body, Not(HasSubstr(second_counter_name)));
-  EXPECT_THAT(second_metrics.body, Not(HasSubstr(first_counter_name)));
+  EXPECT_THAT(first_metrics.body,
+              testing::Not(testing::HasSubstr(second_counter_name)));
+  EXPECT_THAT(second_metrics.body,
+              testing::Not(testing::HasSubstr(first_counter_name)));
 }
 
 TEST_F(IntegrationTest, unexposeRegistry) {
@@ -150,7 +150,7 @@ TEST_F(IntegrationTest, unexposeRegistry) {
 
   const auto metrics = FetchMetrics(default_metrics_path_);
   ASSERT_EQ(metrics.code, 200);
-  EXPECT_THAT(metrics.body, Not(HasSubstr(counter_name)));
+  EXPECT_THAT(metrics.body, testing::Not(testing::HasSubstr(counter_name)));
 }
 
 TEST_F(IntegrationTest, acceptOptionalCompression) {
@@ -163,7 +163,7 @@ TEST_F(IntegrationTest, acceptOptionalCompression) {
   const auto metrics = FetchMetrics(default_metrics_path_);
 
   ASSERT_EQ(metrics.code, 200);
-  EXPECT_THAT(metrics.body, HasSubstr(counter_name));
+  EXPECT_THAT(metrics.body, testing::HasSubstr(counter_name));
 }
 
 #if 0  // https://github.com/civetweb/civetweb/issues/954
@@ -187,8 +187,8 @@ TEST_F(IntegrationTest, shouldPerformProperAuthentication) {
   const std::string counter_name = "example_total";
   auto registry = RegisterSomeCounter(counter_name, default_metrics_path_);
 
-  const auto my_username = "test_user";
-  const auto my_password = "test_password";
+  const auto* my_username = "test_user";
+  const auto* my_password = "test_password";
 
   fetchPrePerform_ = [my_username, my_password](CURL* curl) {
     curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
@@ -206,7 +206,7 @@ TEST_F(IntegrationTest, shouldPerformProperAuthentication) {
   const auto metrics = FetchMetrics(default_metrics_path_);
 
   ASSERT_EQ(metrics.code, 200);
-  EXPECT_THAT(metrics.body, HasSubstr(counter_name));
+  EXPECT_THAT(metrics.body, testing::HasSubstr(counter_name));
 }
 
 TEST_F(IntegrationTest, shouldDealWithExpiredCollectables) {
@@ -228,8 +228,9 @@ TEST_F(IntegrationTest, shouldDealWithExpiredCollectables) {
 
   ASSERT_EQ(metrics.code, 200);
 
-  EXPECT_THAT(metrics.body, HasSubstr(first_counter_name));
-  EXPECT_THAT(metrics.body, Not(HasSubstr(second_counter_name)));
+  EXPECT_THAT(metrics.body, testing::HasSubstr(first_counter_name));
+  EXPECT_THAT(metrics.body,
+              testing::Not(testing::HasSubstr(second_counter_name)));
 }
 
 TEST_F(IntegrationTest, shouldSendBodyAsUtf8) {
@@ -241,7 +242,7 @@ TEST_F(IntegrationTest, shouldSendBodyAsUtf8) {
   // check content type
 
   ASSERT_EQ(metrics.code, 200);
-  EXPECT_THAT(metrics.contentType, HasSubstr("utf-8"));
+  EXPECT_THAT(metrics.contentType, testing::HasSubstr("utf-8"));
 }
 
 }  // namespace

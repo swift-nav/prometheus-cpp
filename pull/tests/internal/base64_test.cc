@@ -24,8 +24,6 @@ const TestVector testVector[] = {
 
 const unsigned nVectors = sizeof(testVector) / sizeof(testVector[0]);
 
-using namespace testing;
-
 TEST(Base64Test, decodeTest) {
   for (unsigned i = 0; i < nVectors; ++i) {
     std::string decoded = detail::base64_decode(testVector[i].encoded);

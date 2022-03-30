@@ -22,8 +22,8 @@ Family<T>::Family(const std::string& name, const std::string& help,
   if (!CheckMetricName(name_)) {
     throw std::invalid_argument("Invalid metric name");
   }
-  for (auto& label_pair : constant_labels_) {
-    auto& label_name = label_pair.first;
+  for (const auto& label_pair : constant_labels_) {
+    const auto& label_name = label_pair.first;
     if (!CheckLabelName(label_name)) {
       throw std::invalid_argument("Invalid label name");
     }
@@ -39,13 +39,13 @@ T& Family<T>::Add(const Labels& labels, std::unique_ptr<T> object) {
 
   if (insert_result.second) {
     // insertion took place, retroactively check for unlikely issues
-    for (auto& label_pair : labels) {
+    for (const auto& label_pair : labels) {
       const auto& label_name = label_pair.first;
       if (!CheckLabelName(label_name)) {
         metrics_.erase(insert_result.first);
         throw std::invalid_argument("Invalid label name");
       }
-      if (constant_labels_.count(label_name)) {
+      if (constant_labels_.count(label_name) > 0) {
         metrics_.erase(insert_result.first);
         throw std::invalid_argument("Duplicate label name");
       }
@@ -72,7 +72,7 @@ void Family<T>::Remove(T* metric) {
 template <typename T>
 bool Family<T>::Has(const Labels& labels) const {
   std::lock_guard<std::mutex> lock{mutex_};
-  return metrics_.count(labels) != 0u;
+  return metrics_.count(labels) > 0;
 }
 
 template <typename T>
@@ -81,7 +81,7 @@ const std::string& Family<T>::GetName() const {
 }
 
 template <typename T>
-const Labels Family<T>::GetConstantLabels() const {
+const Labels& Family<T>::GetConstantLabels() const {
   return constant_labels_;
 }
 
