@@ -5,7 +5,7 @@
 namespace prometheus {
 namespace {
 
-TEST(GaugeTest, initialize_with_zero) {
+TEST(GaugeTest, initializeWithZero) {
   Gauge gauge;
   EXPECT_EQ(gauge.Value(), 0);
 }
@@ -16,13 +16,13 @@ TEST(GaugeTest, inc) {
   EXPECT_EQ(gauge.Value(), 1.0);
 }
 
-TEST(GaugeTest, inc_number) {
+TEST(GaugeTest, incNumber) {
   Gauge gauge;
   gauge.Increment(4);
   EXPECT_EQ(gauge.Value(), 4.0);
 }
 
-TEST(GaugeTest, inc_multiple) {
+TEST(GaugeTest, incMultiple) {
   Gauge gauge;
   gauge.Increment();
   gauge.Increment();
@@ -30,7 +30,7 @@ TEST(GaugeTest, inc_multiple) {
   EXPECT_EQ(gauge.Value(), 7.0);
 }
 
-TEST(GaugeTest, inc_negative_value) {
+TEST(GaugeTest, incNegativeValue) {
   Gauge gauge;
   gauge.Increment(-1.0);
   EXPECT_EQ(gauge.Value(), -1.0);
@@ -43,13 +43,13 @@ TEST(GaugeTest, dec) {
   EXPECT_EQ(gauge.Value(), 4.0);
 }
 
-TEST(GaugeTest, dec_negative_value) {
+TEST(GaugeTest, decNegativeValue) {
   Gauge gauge;
   gauge.Decrement(-1.0);
   EXPECT_EQ(gauge.Value(), 1.0);
 }
 
-TEST(GaugeTest, dec_number) {
+TEST(GaugeTest, decNumber) {
   Gauge gauge;
   gauge.Set(5.0);
   gauge.Decrement(3.0);
@@ -62,7 +62,7 @@ TEST(GaugeTest, set) {
   EXPECT_EQ(gauge.Value(), 3.0);
 }
 
-TEST(GaugeTest, set_multiple) {
+TEST(GaugeTest, setMultiple) {
   Gauge gauge;
   gauge.Set(3.0);
   gauge.Set(8.0);
@@ -70,7 +70,7 @@ TEST(GaugeTest, set_multiple) {
   EXPECT_EQ(gauge.Value(), 1.0);
 }
 
-TEST(GaugeTest, set_to_current_time) {
+TEST(GaugeTest, setToCurrentTime) {
   Gauge gauge;
   gauge.SetToCurrentTime();
   EXPECT_GT(gauge.Value(), 0.0);

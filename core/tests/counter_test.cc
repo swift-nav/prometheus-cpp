@@ -5,7 +5,7 @@
 namespace prometheus {
 namespace {
 
-TEST(CounterTest, initialize_with_zero) {
+TEST(CounterTest, initializeWithZero) {
   Counter counter;
   EXPECT_EQ(counter.Value(), 0);
 }
@@ -16,13 +16,13 @@ TEST(CounterTest, inc) {
   EXPECT_EQ(counter.Value(), 1.0);
 }
 
-TEST(CounterTest, inc_number) {
+TEST(CounterTest, incNumber) {
   Counter counter;
   counter.Increment(4);
   EXPECT_EQ(counter.Value(), 4.0);
 }
 
-TEST(CounterTest, inc_multiple) {
+TEST(CounterTest, incMultiple) {
   Counter counter;
   counter.Increment();
   counter.Increment();
@@ -30,7 +30,7 @@ TEST(CounterTest, inc_multiple) {
   EXPECT_EQ(counter.Value(), 7.0);
 }
 
-TEST(CounterTest, inc_negative_value) {
+TEST(CounterTest, incNegativeValue) {
   Counter counter;
   counter.Increment(5.0);
   counter.Increment(-5.0);

@@ -29,14 +29,14 @@ TEST(FamilyTest, labels) {
               ::testing::ElementsAre(const_label, dynamic_label));
 }
 
-TEST(FamilyTest, reject_same_label_keys) {
+TEST(FamilyTest, rejectSameLabelKeys) {
   auto labels = Labels{{"component", "test"}};
 
   Family<Counter> family{"total_requests", "Counts all requests", labels};
   EXPECT_ANY_THROW(family.Add(labels));
 }
 
-TEST(FamilyTest, counter_value) {
+TEST(FamilyTest, counterValue) {
   Family<Counter> family{"total_requests", "Counts all requests", {}};
   auto& counter = family.Add({});
   counter.Increment();
@@ -61,7 +61,7 @@ TEST(FamilyTest, removeUnknownMetricMustNotCrash) {
   family.Remove(nullptr);
 }
 
-TEST(FamilyTest, Histogram) {
+TEST(FamilyTest, histogram) {
   Family<Histogram> family{"request_latency", "Latency Histogram", {}};
   auto& histogram1 = family.Add({{"name", "histogram1"}},
                                 Histogram::BucketBoundaries{0, 1, 2});
@@ -72,21 +72,21 @@ TEST(FamilyTest, Histogram) {
   EXPECT_EQ(1U, collected[0].metric.at(0).histogram.sample_count);
 }
 
-TEST(FamilyTest, add_twice) {
+TEST(FamilyTest, addTwice) {
   Family<Counter> family{"total_requests", "Counts all requests", {}};
   auto& counter = family.Add({{"name", "counter1"}});
   auto& counter1 = family.Add({{"name", "counter1"}});
   ASSERT_EQ(&counter, &counter1);
 }
 
-TEST(FamilyTest, throw_on_invalid_metric_name) {
+TEST(FamilyTest, throwOnInvalidMetricName) {
   auto create_family_with_invalid_name = []() {
     return detail::make_unique<Family<Counter>>("", "empty name", Labels{});
   };
   EXPECT_ANY_THROW(create_family_with_invalid_name());
 }
 
-TEST(FamilyTest, throw_on_invalid_constant_label_name) {
+TEST(FamilyTest, throwOnInvalidConstantLabelName) {
   auto create_family_with_invalid_labels = []() {
     return detail::make_unique<Family<Counter>>(
         "total_requests", "Counts all requests",
@@ -95,7 +95,7 @@ TEST(FamilyTest, throw_on_invalid_constant_label_name) {
   EXPECT_ANY_THROW(create_family_with_invalid_labels());
 }
 
-TEST(FamilyTest, should_throw_on_invalid_labels) {
+TEST(FamilyTest, shouldThrowOnInvalidLabels) {
   Family<Counter> family{"total_requests", "Counts all requests", {}};
   auto add_metric_with_invalid_label_name = [&family]() {
     family.Add({{"__invalid", "counter1"}});
@@ -103,13 +103,13 @@ TEST(FamilyTest, should_throw_on_invalid_labels) {
   EXPECT_ANY_THROW(add_metric_with_invalid_label_name());
 }
 
-TEST(FamilyTest, should_not_collect_empty_metrics) {
+TEST(FamilyTest, shouldNotCollectEmptyMetrics) {
   Family<Counter> family{"total_requests", "Counts all requests", {}};
   auto collected = family.Collect();
   EXPECT_TRUE(collected.empty());
 }
 
-TEST(FamilyTest, query_family_if_metric_already_exists) {
+TEST(FamilyTest, queryFamilyIfMetricAlreadyExists) {
   Family<Counter> family{"total_rquests", "Counts all requests", {}};
   family.Add({{"name", "counter1"}});
   EXPECT_TRUE(family.Has({{"name", "counter1"}}));

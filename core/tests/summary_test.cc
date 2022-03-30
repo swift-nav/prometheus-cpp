@@ -11,7 +11,7 @@
 namespace prometheus {
 namespace {
 
-TEST(SummaryTest, initialize_with_zero) {
+TEST(SummaryTest, initializeWithZero) {
   Summary summary{Summary::Quantiles{}};
   auto metric = summary.Collect();
   auto s = metric.summary;
@@ -19,7 +19,7 @@ TEST(SummaryTest, initialize_with_zero) {
   EXPECT_EQ(s.sample_sum, 0);
 }
 
-TEST(SummaryTest, sample_count) {
+TEST(SummaryTest, sampleCount) {
   Summary summary{Summary::Quantiles{{0.5, 0.05}}};
   summary.Observe(0);
   summary.Observe(200);
@@ -28,7 +28,7 @@ TEST(SummaryTest, sample_count) {
   EXPECT_EQ(s.sample_count, 2U);
 }
 
-TEST(SummaryTest, sample_sum) {
+TEST(SummaryTest, sampleSum) {
   Summary summary{Summary::Quantiles{{0.5, 0.05}}};
   summary.Observe(0);
   summary.Observe(1);
@@ -38,14 +38,14 @@ TEST(SummaryTest, sample_sum) {
   EXPECT_EQ(s.sample_sum, 102);
 }
 
-TEST(SummaryTest, quantile_size) {
+TEST(SummaryTest, quantileSize) {
   Summary summary{Summary::Quantiles{{0.5, 0.05}, {0.90, 0.01}}};
   auto metric = summary.Collect();
   auto s = metric.summary;
   EXPECT_EQ(s.quantile.size(), 2U);
 }
 
-TEST(SummaryTest, quantile_bounds) {
+TEST(SummaryTest, quantileBounds) {
   Summary summary{Summary::Quantiles{{0.5, 0.05}, {0.90, 0.01}, {0.99, 0.001}}};
   auto metric = summary.Collect();
   auto s = metric.summary;
@@ -55,7 +55,7 @@ TEST(SummaryTest, quantile_bounds) {
   EXPECT_DOUBLE_EQ(s.quantile.at(2).quantile, 0.99);
 }
 
-TEST(SummaryTest, quantile_values) {
+TEST(SummaryTest, quantileValues) {
   static const int samples = 1000000;
 
   Summary summary{Summary::Quantiles{{0.5, 0.05}, {0.9, 0.01}, {0.99, 0.001}}};
@@ -72,7 +72,7 @@ TEST(SummaryTest, quantile_values) {
   EXPECT_NEAR(s.quantile.at(2).value, 0.99 * samples, 0.001 * samples);
 }
 
-TEST(SummaryTest, max_age) {
+TEST(SummaryTest, maxAge) {
   Summary summary{Summary::Quantiles{{0.99, 0.001}}, std::chrono::seconds(1),
                   2};
   summary.Observe(8.0);
@@ -96,7 +96,7 @@ TEST(SummaryTest, max_age) {
   test_value(std::numeric_limits<double>::quiet_NaN());
 }
 
-TEST(SummaryTest, construction_with_dynamic_quantile_vector) {
+TEST(SummaryTest, constructionWithDynamicQuantileVector) {
   auto quantiles = Summary::Quantiles{{0.99, 0.001}};
   quantiles.emplace_back(0.5, 0.05);
 

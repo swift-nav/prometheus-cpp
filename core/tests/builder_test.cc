@@ -59,7 +59,7 @@ class BuilderTest : public testing::Test {
   const std::vector<ClientMetric::Label> expected_labels = getExpectedLabels();
 };
 
-TEST_F(BuilderTest, build_counter) {
+TEST_F(BuilderTest, buildCounter) {
   auto& family = BuildCounter()
                      .Name(name)
                      .Help(help)
@@ -70,7 +70,7 @@ TEST_F(BuilderTest, build_counter) {
   verifyCollectedLabels();
 }
 
-TEST_F(BuilderTest, build_gauge) {
+TEST_F(BuilderTest, buildGauge) {
   auto& family = BuildGauge()
                      .Name(name)
                      .Help(help)
@@ -81,7 +81,7 @@ TEST_F(BuilderTest, build_gauge) {
   verifyCollectedLabels();
 }
 
-TEST_F(BuilderTest, build_histogram) {
+TEST_F(BuilderTest, buildHistogram) {
   auto& family = BuildHistogram()
                      .Name(name)
                      .Help(help)
@@ -92,7 +92,7 @@ TEST_F(BuilderTest, build_histogram) {
   verifyCollectedLabels();
 }
 
-TEST_F(BuilderTest, build_summary) {
+TEST_F(BuilderTest, buildSummary) {
   auto& family = BuildSummary()
                      .Name(name)
                      .Help(help)

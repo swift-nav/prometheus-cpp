@@ -5,28 +5,28 @@
 namespace prometheus {
 namespace {
 
-TEST(CheckNamesTest, empty_metric_name) { EXPECT_FALSE(CheckMetricName("")); }
-TEST(CheckNamesTest, good_metric_name) {
+TEST(CheckNamesTest, emptyMetricName) { EXPECT_FALSE(CheckMetricName("")); }
+TEST(CheckNamesTest, goodMetricName) {
   EXPECT_TRUE(CheckMetricName("prometheus_notifications_total"));
 }
-TEST(CheckNamesTest, reserved_metric_name) {
+TEST(CheckNamesTest, reservedMetricName) {
   EXPECT_FALSE(CheckMetricName("__some_reserved_metric"));
 }
-TEST(CheckNamesTest, malformed_metric_name) {
+TEST(CheckNamesTest, malformedMetricName) {
   EXPECT_FALSE(CheckMetricName("fa mi ly with space in name or |"));
 }
-TEST(CheckNamesTest, empty_label_name) { EXPECT_FALSE(CheckLabelName("")); }
-TEST(CheckNamesTest, invalid_label_name) {
+TEST(CheckNamesTest, emptyLabelName) { EXPECT_FALSE(CheckLabelName("")); }
+TEST(CheckNamesTest, invalidLabelName) {
   EXPECT_FALSE(CheckLabelName("log-level"));
 }
-TEST(CheckNamesTest, leading_invalid_label_name) {
+TEST(CheckNamesTest, leadingInvalidLabelName) {
   EXPECT_FALSE(CheckLabelName("-abcd"));
 }
-TEST(CheckNamesTest, trailing_invalid_label_name) {
+TEST(CheckNamesTest, trailingInvalidLabelName) {
   EXPECT_FALSE(CheckLabelName("abcd-"));
 }
-TEST(CheckNamesTest, good_label_name) { EXPECT_TRUE(CheckLabelName("type")); }
-TEST(CheckNamesTest, reserved_label_name) {
+TEST(CheckNamesTest, goodLabelName) { EXPECT_TRUE(CheckLabelName("type")); }
+TEST(CheckNamesTest, reservedLabelName) {
   EXPECT_FALSE(CheckMetricName("__some_reserved_label"));
 }
 

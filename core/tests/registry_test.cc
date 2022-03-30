@@ -13,7 +13,7 @@
 namespace prometheus {
 namespace {
 
-TEST(RegistryTest, collect_single_metric_family) {
+TEST(RegistryTest, collectSingleMetricFamily) {
   Registry registry{};
   auto& counter_family =
       BuildCounter().Name("test").Help("a test").Register(registry);
@@ -30,7 +30,7 @@ TEST(RegistryTest, collect_single_metric_family) {
   EXPECT_EQ(collected[0].metric.at(1).label.at(0).name, "name");
 }
 
-TEST(RegistryTest, build_histogram_family) {
+TEST(RegistryTest, buildHistogramFamily) {
   Registry registry{};
   auto& histogram_family =
       BuildHistogram().Name("hist").Help("Test Histogram").Register(registry);
@@ -41,13 +41,13 @@ TEST(RegistryTest, build_histogram_family) {
   ASSERT_EQ(collected.size(), 1U);
 }
 
-TEST(RegistryTest, unable_to_remove_family) {
+TEST(RegistryTest, unableToRemoveFamily) {
   Family<Counter> family{"name", "help", {}};
   Registry registry{};
   EXPECT_FALSE(registry.Remove(family));
 }
 
-TEST(RegistryTest, remove_and_readd_family) {
+TEST(RegistryTest, removeAndReaddFamily) {
   Registry registry{Registry::InsertBehavior::Throw};
 
   auto& counter = BuildCounter().Name("name").Register(registry);
@@ -55,7 +55,7 @@ TEST(RegistryTest, remove_and_readd_family) {
   EXPECT_NO_THROW(BuildCounter().Name("name").Register(registry));
 }
 
-TEST(RegistryTest, reject_different_type_than_counter) {
+TEST(RegistryTest, rejectDifferentTypeThanCounter) {
   const auto same_name = std::string{"same_name"};
   Registry registry{};
 
@@ -65,7 +65,7 @@ TEST(RegistryTest, reject_different_type_than_counter) {
   EXPECT_ANY_THROW(BuildSummary().Name(same_name).Register(registry));
 }
 
-TEST(RegistryTest, reject_different_type_than_gauge) {
+TEST(RegistryTest, rejectDifferentTypeThanGauge) {
   const auto same_name = std::string{"same_name"};
   Registry registry{};
 
@@ -75,7 +75,7 @@ TEST(RegistryTest, reject_different_type_than_gauge) {
   EXPECT_ANY_THROW(BuildSummary().Name(same_name).Register(registry));
 }
 
-TEST(RegistryTest, reject_different_type_than_histogram) {
+TEST(RegistryTest, rejectDifferentTypeThanHistogram) {
   const auto same_name = std::string{"same_name"};
   Registry registry{};
 
@@ -85,7 +85,7 @@ TEST(RegistryTest, reject_different_type_than_histogram) {
   EXPECT_ANY_THROW(BuildSummary().Name(same_name).Register(registry));
 }
 
-TEST(RegistryTest, reject_different_type_than_summary) {
+TEST(RegistryTest, rejectDifferentTypeThanSummary) {
   const auto same_name = std::string{"same_name"};
   Registry registry{};
 
@@ -95,7 +95,7 @@ TEST(RegistryTest, reject_different_type_than_summary) {
   EXPECT_ANY_THROW(BuildHistogram().Name(same_name).Register(registry));
 }
 
-TEST(RegistryTest, throw_for_same_family_name) {
+TEST(RegistryTest, throwForSameFamilyName) {
   const auto same_name = std::string{"same_name"};
   Registry registry{Registry::InsertBehavior::Throw};
 
@@ -103,7 +103,7 @@ TEST(RegistryTest, throw_for_same_family_name) {
   EXPECT_ANY_THROW(BuildCounter().Name(same_name).Register(registry));
 }
 
-TEST(RegistryTest, merge_same_families) {
+TEST(RegistryTest, mergeSameFamilies) {
   Registry registry{Registry::InsertBehavior::Merge};
 
   std::size_t loops = 4;
@@ -120,7 +120,7 @@ TEST(RegistryTest, merge_same_families) {
   EXPECT_EQ(1U, collected.size());
 }
 
-TEST(RegistryTest, do_not_merge_families_with_different_labels) {
+TEST(RegistryTest, doNotMergeFamiliesWithDifferentLabels) {
   Registry registry{Registry::InsertBehavior::Merge};
 
   EXPECT_NO_THROW(BuildCounter()
