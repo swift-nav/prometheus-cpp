@@ -31,18 +31,6 @@ class TextSerializerTest : public testing::Test {
     return textSerializer.Serialize(families);
   }
 
-  std::string Serialize(MetricType type, bool open_metrics) const {
-    MetricFamily metricFamily;
-    metricFamily.name = name;
-    metricFamily.help = help;
-    metricFamily.type = type;
-    metricFamily.metric = std::vector<ClientMetric>{metric};
-
-    std::vector<MetricFamily> families{metricFamily};
-
-    return textSerializer.Serialize(families, open_metrics);
-  }
-
   std::string name = "my_metric";
   std::string help = "my metric help text";
   ClientMetric metric;
@@ -111,16 +99,6 @@ TEST_F(TextSerializerTest, shouldSerializeUntyped) {
   metric.untyped.value = 64.0;
 
   const auto serialized = Serialize(MetricType::Untyped);
-  EXPECT_THAT(serialized, testing::HasSubstr("# TYPE " + name + " untyped\n"));
-  EXPECT_THAT(serialized,
-              testing::HasSubstr("# HELP " + name + " " + help + "\n"));
-  EXPECT_THAT(serialized, testing::HasSubstr(name + " 64\n"));
-}
-
-TEST_F(TextSerializerTest, shouldSerializeOpenMetricsUntyped) {
-  metric.untyped.value = 64.0;
-
-  const auto serialized = Serialize(MetricType::Untyped, true);
   EXPECT_THAT(serialized, testing::HasSubstr("# TYPE " + name + " unknown\n"));
   EXPECT_THAT(serialized,
               testing::HasSubstr("# HELP " + name + " " + help + "\n"));
@@ -132,17 +110,6 @@ TEST_F(TextSerializerTest, shouldSerializeTimestamp) {
   metric.timestamp = std::chrono::milliseconds(1234);
 
   const auto serialized = Serialize(MetricType::Gauge);
-  EXPECT_THAT(serialized, testing::HasSubstr("# TYPE " + name + " gauge\n"));
-  EXPECT_THAT(serialized,
-              testing::HasSubstr("# HELP " + name + " " + help + "\n"));
-  EXPECT_THAT(serialized, testing::HasSubstr(name + " 64 1234\n"));
-}
-
-TEST_F(TextSerializerTest, shouldSerializeOpenMetricsTimestamp) {
-  metric.gauge.value = 64.0;
-  metric.timestamp = std::chrono::milliseconds(1234);
-
-  const auto serialized = Serialize(MetricType::Gauge, true);
   EXPECT_THAT(serialized, testing::HasSubstr("# TYPE " + name + " gauge\n"));
   EXPECT_THAT(serialized,
               testing::HasSubstr("# HELP " + name + " " + help + "\n"));
@@ -201,10 +168,9 @@ TEST_F(TextSerializerTest, shouldSerializeCounter) {
   metric.counter.value = 1.0;
 
   const auto serialized = Serialize(MetricType::Counter);
+  EXPECT_THAT(serialized, testing::HasSubstr("# TYPE " + name + " counter\n"));
   EXPECT_THAT(serialized,
-              testing::HasSubstr("# TYPE " + name + "_total counter\n"));
-  EXPECT_THAT(serialized,
-              testing::HasSubstr("# HELP " + name + "_total " + help + "\n"));
+              testing::HasSubstr("# HELP " + name + " " + help + "\n"));
   EXPECT_THAT(serialized, testing::HasSubstr(name + "_total 1\n"));
 }
 
@@ -214,29 +180,6 @@ TEST_F(TextSerializerTest, shouldSerializeCounterWithSuffix) {
   metric.counter.value = 1.0;
 
   const auto serialized = Serialize(MetricType::Counter);
-  EXPECT_THAT(serialized, testing::HasSubstr("# TYPE " + original_name +
-                                             "_total counter\n"));
-  EXPECT_THAT(serialized, testing::HasSubstr("# HELP " + original_name +
-                                             "_total " + help + "\n"));
-  EXPECT_THAT(serialized, testing::HasSubstr(original_name + "_total 1\n"));
-}
-
-TEST_F(TextSerializerTest, shouldSerializeOpenMetricsCounter) {
-  metric.counter.value = 1.0;
-
-  const auto serialized = Serialize(MetricType::Counter, true);
-  EXPECT_THAT(serialized, testing::HasSubstr("# TYPE " + name + " counter\n"));
-  EXPECT_THAT(serialized,
-              testing::HasSubstr("# HELP " + name + " " + help + "\n"));
-  EXPECT_THAT(serialized, testing::HasSubstr(name + "_total 1\n"));
-}
-
-TEST_F(TextSerializerTest, shouldSerializeOpenMetricsCounterWithSuffix) {
-  const std::string original_name = name;
-  name += "_total";
-  metric.counter.value = 1.0;
-
-  const auto serialized = Serialize(MetricType::Counter, true);
   EXPECT_THAT(serialized,
               testing::HasSubstr("# TYPE " + original_name + " counter\n"));
   EXPECT_THAT(serialized, testing::HasSubstr("# HELP " + original_name + " " +
@@ -248,12 +191,12 @@ TEST_F(TextSerializerTest, shouldSerializeNoHelp) {
   help.clear();
 
   EXPECT_THAT(
-      Serialize(MetricType::Gauge, true),
+      Serialize(MetricType::Gauge),
       testing::Not(testing::HasSubstr("# HELP " + name + " " + help + "\n")));
 }
 
-TEST_F(TextSerializerTest, shouldSerializeOpenMetricsEof) {
-  EXPECT_THAT(Serialize(MetricType::Gauge, true), testing::EndsWith("# EOF\n"));
+TEST_F(TextSerializerTest, shouldSerializeEof) {
+  EXPECT_THAT(Serialize(MetricType::Gauge), testing::EndsWith("# EOF\n"));
 }
 
 TEST_F(TextSerializerTest, shouldSortLabels) {
@@ -274,29 +217,29 @@ TEST_F(TextSerializerTest, shouldSortLabels) {
   std::vector<MetricFamily> families{metricFamily};
 
   const auto serialized = textSerializer.Serialize(families);
-  EXPECT_THAT(serialized, testing::EndsWith(name + "{b=\"bb\"} 1\n"));
+  EXPECT_THAT(serialized, testing::EndsWith(name + "{b=\"bb\"} 1\n# EOF\n"));
 }
 
 TEST_F(TextSerializerTest, shouldSortLabelsAndTime) {
   ClientMetric metric1;
   metric1.label.emplace_back(ClientMetric::Label{"b", "bb"});
   metric1.gauge.value = 2;
-  metric1.timestamp = std::chrono::milliseconds(200);
+  metric1.timestamp = std::chrono::milliseconds(2000);
 
   ClientMetric metric2;
   metric2.label.emplace_back(ClientMetric::Label{"a", "aa"});
   metric2.gauge.value = 2;
-  metric2.timestamp = std::chrono::milliseconds(200);
+  metric2.timestamp = std::chrono::milliseconds(2000);
 
   ClientMetric metric3;
   metric3.label.emplace_back(ClientMetric::Label{"b", "bb"});
   metric3.gauge.value = 1;
-  metric3.timestamp = std::chrono::milliseconds(100);
+  metric3.timestamp = std::chrono::milliseconds(1000);
 
   ClientMetric metric4;
   metric4.label.emplace_back(ClientMetric::Label{"a", "aa"});
   metric4.gauge.value = 1;
-  metric4.timestamp = std::chrono::milliseconds(100);
+  metric4.timestamp = std::chrono::milliseconds(1000);
 
   MetricFamily metricFamily;
   metricFamily.name = name;
@@ -308,8 +251,8 @@ TEST_F(TextSerializerTest, shouldSortLabelsAndTime) {
   std::vector<MetricFamily> families{metricFamily};
 
   const auto serialized = textSerializer.Serialize(families);
-  EXPECT_THAT(serialized, testing::EndsWith(name + "{b=\"bb\"} 1 100\n" + name +
-                                            "{b=\"bb\"} 2 200\n"));
+  EXPECT_THAT(serialized, testing::EndsWith(name + "{b=\"bb\"} 1 1\n" + name +
+                                            "{b=\"bb\"} 2 2\n# EOF\n"));
 }
 
 }  // namespace
