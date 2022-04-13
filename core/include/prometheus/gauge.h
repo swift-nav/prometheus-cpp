@@ -75,8 +75,9 @@ class PROMETHEUS_CPP_CORE_EXPORT Gauge {
  private:
   void Change(double);
   std::atomic<double> value_{0.0};
-  std::atomic<std::chrono::system_clock::time_point> time_{
-      std::chrono::system_clock::now()};
+  std::atomic<std::chrono::system_clock::duration> time_{
+      std::chrono::system_clock::now().time_since_epoch()};
+  ;
 };
 
 /// \brief Return a builder to configure and register a Gauge metric.
