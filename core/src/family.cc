@@ -49,7 +49,7 @@ T& Family<T>::Add(const Labels& labels, std::unique_ptr<T> object) {
       }
       if (constant_labels_.count(label_name)) {
         metrics_.erase(insert_result.first);
-        throw std::invalid_argument("Duplicate label name");
+        //throw std::invalid_argument("Duplicate label name");
       }
     }
   }
