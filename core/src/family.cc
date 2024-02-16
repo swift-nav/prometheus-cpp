@@ -36,6 +36,11 @@ template <typename T>
 T& Family<T>::Add(const Labels& labels, std::unique_ptr<T> object) {
   std::lock_guard<std::mutex> lock{mutex_};
 
+  printf("add function \r\n");
+  for( auto iter: labels){
+    printf("Label name %s \r\n", iter.first.c_str());
+  }
+
   auto insert_result =
       metrics_.insert(std::make_pair(labels, std::move(object)));
 
@@ -48,8 +53,17 @@ T& Family<T>::Add(const Labels& labels, std::unique_ptr<T> object) {
         throw std::invalid_argument("Invalid label name");
       }
       if (constant_labels_.count(label_name)) {
+        printf("Label name %s count:%zu \r\n", label_name.c_str(),constant_labels_.count(label_name));
+
+        printf("Labels available ------ \r\n");
+
+        for( auto it = constant_labels_.begin(); it != constant_labels_.end(); ++it )
+        {
+          printf("Label name %s \r\n", it->first.c_str());
+        }
+
         metrics_.erase(insert_result.first);
-        //throw std::invalid_argument("Duplicate label name");
+        throw std::invalid_argument("Duplicate label name");
       }
     }
   }
