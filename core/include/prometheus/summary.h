@@ -107,7 +107,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Summary {
   Summary(const Quantiles& quantiles,
           const std::chrono::system_clock::time_point& creation_time,
           std::chrono::milliseconds max_age = std::chrono::seconds{2*24*60*60},
-          int age_buckets = 24);
+          int age_buckets = 12);
 
   /// \brief Observe the given amount.
   void Observe(double value);
