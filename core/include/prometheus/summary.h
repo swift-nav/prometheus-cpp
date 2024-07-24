@@ -106,8 +106,8 @@ class PROMETHEUS_CPP_CORE_EXPORT Summary {
   /// has passed. The default value is 5.
   Summary(const Quantiles& quantiles,
           const std::chrono::system_clock::time_point& creation_time,
-          std::chrono::milliseconds max_age = std::chrono::seconds{10*24*60*60},
-          int age_buckets = 10*24);
+          std::chrono::milliseconds max_age = std::chrono::seconds{2*24*60*60},
+          int age_buckets = 24);
 
   /// \brief Observe the given amount.
   void Observe(double value);
