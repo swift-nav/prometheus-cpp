@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <chrono>
+#include <iostream>
 #include <iterator>
+#include <sstream>
 #include <stdexcept>
 #include <tuple>
 
@@ -108,8 +110,15 @@ Family<T>& Registry::Add(const std::string& name, const std::string& help,
   std::lock_guard<std::mutex> lock{mutex_};
 
   if (NameExistsInOtherType<T>(name)) {
-    throw std::invalid_argument(
-        "Family name already exists with different type");
+    std::stringstream ss;
+    ss << "Family name already exists with different type (name:'" << name
+       << "',type:'" << typeid(T).name() << "');help:" << help << ";labels:";
+    for (const auto& label : labels) {
+      ss << label.first << "=" << label.second << ",";
+    }
+    ss << std::endl;
+    std::cerr << ss.str();
+    throw std::invalid_argument(ss.str());
   }
 
   auto& families = GetFamilies<T>();
@@ -134,7 +143,15 @@ Family<T>& Registry::Add(const std::string& name, const std::string& help,
 
   auto it = std::find_if(families.begin(), families.end(), same_name);
   if (it != families.end()) {
-    throw std::invalid_argument("Family name already exists");
+    std::stringstream ss;
+    ss << "Family name already exists (name:'" << name << "',type:'"
+       << typeid(T).name() << "');help:" << help << ";labels:";
+    for (const auto& label : labels) {
+      ss << label.first << "=" << label.second << ",";
+    }
+    ss << std::endl;
+    std::cerr << ss.str();
+    throw std::invalid_argument(ss.str());
   }
 
   auto family = detail::make_unique<Family<T>>(name, help, labels, ttl);
