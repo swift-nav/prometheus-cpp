@@ -27,10 +27,10 @@ def prometheus_cpp_repositories():
         http_archive,
         name = "com_github_curl",
         sha256 = "910cc5fe279dc36e2cca534172c94364cf3fcf7d6494ba56e6c61a390881ddce",
-        strip_prefix = "curl-7.82.0",
+        strip_prefix = "curl-8.16.0",
         urls = [
-            "https://github.com/curl/curl/releases/download/curl-7_82_0/curl-7.82.0.tar.gz",
-            "https://curl.haxx.se/download/curl-7.82.0.tar.gz",
+            "https://github.com/curl/curl/releases/download/curl-8_16_0/curl-8.16.0.tar.gz",
+            "https://curl.se/download/curl-8.16.0.tar.gz",
         ],
         build_file = "@com_github_jupp0r_prometheus_cpp//bazel:curl.BUILD",
     )
@@ -48,11 +48,11 @@ def prometheus_cpp_repositories():
     maybe(
         http_archive,
         name = "net_zlib_zlib",
-        sha256 = "c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1",
-        strip_prefix = "zlib-1.2.11",
+        sha256 = "9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23",
+        strip_prefix = "zlib-1.3.1",
         urls = [
-            "https://mirror.bazel.build/zlib.net/zlib-1.2.11.tar.gz",
-            "https://zlib.net/zlib-1.2.11.tar.gz",
+            "https://mirror.bazel.build/zlib.net/zlib-1.3.1.tar.gz",
+            "https://zlib.net/zlib-1.3.1.tar.gz",
         ],
         build_file = "@com_github_jupp0r_prometheus_cpp//bazel:zlib.BUILD",
     )
