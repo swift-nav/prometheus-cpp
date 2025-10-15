@@ -10,6 +10,7 @@ cc_library(
     copts = [
         "-w",
         "-Dverbose=-1",
+        "-Wno-error=implicit-function-declaration",
     ],
     includes = ["."],
     visibility = ["//visibility:public"],
