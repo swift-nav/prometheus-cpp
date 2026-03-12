@@ -1,4 +1,5 @@
 load("//bazel:export_header.bzl", "generate_dummy_export_header")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 
 generate_dummy_export_header(
     name = "export_header",
