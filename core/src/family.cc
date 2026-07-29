@@ -60,6 +60,14 @@ T& Family<T>::Add(const Labels& labels, std::unique_ptr<T> object) {
 }
 
 template <typename T>
+T* Family<T>::TryGet(const Labels& labels) const {
+  std::lock_guard<std::mutex> lock{mutex_};
+
+  auto it = metrics_.find(labels);
+  return it == metrics_.end() ? nullptr : it->second.get();
+}
+
+template <typename T>
 void Family<T>::Remove(T* metric) {
   std::lock_guard<std::mutex> lock{mutex_};
 

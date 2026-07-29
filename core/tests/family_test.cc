@@ -84,6 +84,20 @@ TEST(FamilyTest, add_twice) {
   ASSERT_EQ(&counter, &counter1);
 }
 
+TEST(FamilyTest, add_existing_preserves_accumulated_state) {
+  // Re-adding the same label set must return the SAME live object, not a
+  // freshly constructed replacement — accumulated samples survive. Guards the
+  // Add() fast path (and any future replace-on-add regression).
+  Family<Counter> family{"total_requests", "Counts all requests", {}};
+  auto& counter = family.Add({{"name", "counter1"}});
+  counter.Increment();
+  counter.Increment();
+
+  auto& again = family.Add({{"name", "counter1"}});
+  EXPECT_EQ(&counter, &again);
+  EXPECT_EQ(2, again.Value());
+}
+
 TEST(FamilyTest, throw_on_invalid_metric_name) {
   auto create_family_with_invalid_name = []() {
     return detail::make_unique<Family<Counter>>("", "empty name", Labels{});

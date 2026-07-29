@@ -118,6 +118,14 @@ class PROMETHEUS_CPP_CORE_EXPORT Family : public Collectable {
   /// \throw std::runtime_exception on invalid label names.
   template <typename... Args>
   T& Add(const Labels& labels, Args&&... args) {
+    // Fast path: return existing dimensional data without constructing a new
+    // T. Construction is expensive (a Summary allocates its full
+    // quantile-estimator state) and on steady-state emission paths the labels
+    // almost always exist already — the construct-then-insert path below
+    // would build the object only to discard it.
+    if (T* existing = TryGet(labels)) {
+      return *existing;
+    }
     return Add(labels, detail::make_unique<T>(args...));
   }
 
@@ -173,6 +181,7 @@ class PROMETHEUS_CPP_CORE_EXPORT Family : public Collectable {
       const Labels& labels, T* metric,
       const std::chrono::system_clock::time_point& time) const;
   T& Add(const Labels& labels, std::unique_ptr<T> object);
+  T* TryGet(const Labels& labels) const;
 };
 
 }  // namespace prometheus
